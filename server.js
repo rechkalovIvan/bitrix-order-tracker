@@ -1,12 +1,21 @@
 const express = require('express');
-const fetch = require('node-fetch');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000; // Render ожидает порт 10000 по умолчанию
 
-// 🔐 Вебхук из Битрикс24
-const BITRIX_WEBHOOK_URL = 'https://ваш-домен.bitrix24.ru/rest/1/abc123xyz456def/';
+// 🚀 Динамический импорт node-fetch (ESM)
+let fetch;
+(async () => {
+    try {
+        fetch = (await import('node-fetch')).default;
+    } catch (err) {
+        console.error('Ошибка загрузки node-fetch:', err);
+    }
+})();
 
-// 🧩 Главная страница
+// 🔐 Вебхук из Битрикс24 (установи в Render как переменную окружения!)
+const BITRIX_WEBHOOK_URL = process.env.BITRIX_WEBHOOK_URL;
+
+// 🏠 Главная страница
 app.get('/', (req, res) => {
     res.send(`
     <h1>Отслеживание заказа</h1>
@@ -14,17 +23,21 @@ app.get('/', (req, res) => {
   `);
 });
 
-// 🔍 Поиск сделки по уникальному ключу
+// 🔍 Обработчик /track?key=...
 app.get('/track', async (req, res) => {
     const { key } = req.query;
 
     if (!key) {
-        return res.status(400).send('Не указан ключ');
+        return res.status(400).send('Не указан ключ доступа.');
+    }
+
+    if (!fetch) {
+        return res.status(500).send('Сервер не загрузил необходимые модули.');
     }
 
     try {
-        // 📥 Ищем сделку по полю UF_UNIQUE_KEY
-        const searchResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.deal.list', {
+        // 📥 Поиск сделки по UF_UNIQUE_KEY
+        const response = await fetch(BITRIX_WEBHOOK_URL + 'crm.deal.list', {
             method: 'POST',
             body: JSON.stringify({
                 filter: { UF_UNIQUE_KEY: key },
@@ -33,15 +46,15 @@ app.get('/track', async (req, res) => {
             headers: { 'Content-Type': 'application/json' }
         });
 
-        const searchData = await searchResponse.json();
+        const data = await response.json();
 
-        if (searchData.error || searchData.result.length === 0) {
+        if (!data.result || data.result.length === 0) {
             return res.status(404).send('Заказ не найден или ключ неверный.');
         }
 
-        const deal = searchData.result[0]; // Берём первую (и единственную) найденную сделку
+        const deal = data.result[0];
 
-        // 🖼️ Показываем страницу
+        // 🖼️ Отправляем HTML клиенту
         res.send(`
       <html>
       <head>
@@ -57,13 +70,12 @@ app.get('/track', async (req, res) => {
       </head>
       <body>
         <h2>Информация о заказе</h2>
-        <p><strong>Название:</strong> ${deal.TITLE || 'Без названия'}</p>
+        <p><strong>Название:</strong> ${deal.TITLE || 'Не указано'}</p>
         <p><strong>Сумма:</strong> ${deal.OPPORTUNITY || '0'} ₽</p>
         <p><strong>Статус:</strong> ${formatStage(deal.STAGE_ID)}</p>
         <p><strong>Дата создания:</strong> ${formatDate(deal.DATE_CREATE)}</p>
         <hr>
         <div class="footer">Заказ №${deal.ID}</div>
-
         <script>
           // 🔄 Автообновление каждые 30 секунд
           setTimeout(() => location.reload(), 30000);
@@ -73,21 +85,21 @@ app.get('/track', async (req, res) => {
     `);
 
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Ошибка сервера');
+        console.error('Ошибка при обработке запроса:', err);
+        res.status(500).send('Ошибка сервера. Попробуйте позже.');
     }
 });
 
 // 🛠 Вспомогательные функции
 function formatStage(stageId) {
-    const stages = {
-        'NEW': 'Новый',
-        'PREPARE': 'Готовится',
-        'EXECUTING': 'Выполняется',
-        'WON': 'Успешно',
-        'LOST': 'Проигран'
+    const map = {
+        'NEW': '🔹 Новый',
+        'PREPARE': '🛠 Готовится',
+        'EXECUTING': '🚚 В доставке',
+        'WON': '✅ Выполнен',
+        'LOST': '❌ Отменён'
     };
-    return stages[stageId] || stageId;
+    return map[stageId] || stageId;
 }
 
 function formatDate(dateStr) {
@@ -96,6 +108,7 @@ function formatDate(dateStr) {
     return date.toLocaleDateString('ru-RU');
 }
 
-app.listen(PORT, () => {
-    console.log(`Сервер запущен на http://localhost:${PORT}`);
+// ✅ ВАЖНО: привязываемся к 0.0.0.0 и используем PORT из окружения
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
 });
