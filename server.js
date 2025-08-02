@@ -36,11 +36,11 @@ app.get('/track', async (req, res) => {
     }
 
     try {
-        // 📥 Поиск сделки по UF_UNIQUE_KEY
+        // 📥 Поиск сделки по UF_CRM_1754162105
         const response = await fetch(BITRIX_WEBHOOK_URL + 'crm.deal.list', {
             method: 'POST',
             body: JSON.stringify({
-                filter: { UF_UNIQUE_KEY: key },
+                filter: { UF_CRM_1754162105: key },
                 select: ['ID', 'TITLE', 'OPPORTUNITY', 'STAGE_ID', 'DATE_CREATE']
             }),
             headers: { 'Content-Type': 'application/json' }
