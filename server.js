@@ -94,7 +94,7 @@ app.get('/track', async (req, res) => {
 function formatStage(stageId) {
     const map = {
         'NEW': '🔹 Новый',
-        'PREPARE': '🛠 Готовится',
+        '7': 'Подтверждена',
         'EXECUTING': '🚚 В доставке',
         'WON': '✅ Выполнен',
         'LOST': '❌ Отменён'
