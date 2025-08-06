@@ -54,13 +54,72 @@ app.get('/track', async (req, res) => {
 
         const lead = data.result[0];
 
+        // 🛒 Получаем товары лида
+        let productsHtml = '<h3>Товары:</h3><p>Нет товаров</p>';
+        try {
+            const productsResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.productrows.get', {
+                method: 'POST',
+                body: JSON.stringify({ id: lead.ID }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const productsData = await productsResponse.json();
+            const products = productsData.result || [];
+
+            if (products.length > 0) {
+                let productsTable = `
+                    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                        <thead>
+                            <tr style="background-color: #f2f2f2;">
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Название</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Цена</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Кол-во</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                let total = 0;
+                products.forEach(product => {
+                    const price = parseFloat(product.PRICE || 0);
+                    const quantity = parseFloat(product.QUANTITY || 0);
+                    const sum = price * quantity;
+                    total += sum;
+
+                    productsTable += `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${product.PRODUCT_NAME || 'Без названия'}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${price.toFixed(2)} ₽</td>
+                            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${quantity}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${sum.toFixed(2)} ₽</td>
+                        </tr>
+                    `;
+                });
+
+                productsTable += `
+                        <tr style="font-weight: bold;">
+                            <td colspan="3" style="border: 1px solid #ddd; padding: 8px; text-align: right;">Итого:</td>
+                            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${total.toFixed(2)} ₽</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                `;
+
+                productsHtml = `<h3>Товары:</h3>${productsTable}`;
+            }
+        } catch (productErr) {
+            console.error('Ошибка при получении товаров:', productErr);
+            productsHtml = '<h3>Товары:</h3><p style="color: red;">Ошибка загрузки товаров</p>';
+        }
+
         // 🖼️ Отправляем HTML клиенту
         res.send(`
       <html>
       <head>
         <title>Ваш лид</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
           h2 { color: #2c3e50; }
           p { font-size: 16px; }
           strong { color: #16a085; }
@@ -74,6 +133,8 @@ app.get('/track', async (req, res) => {
         <p><strong>Сумма:</strong> ${lead.OPPORTUNITY || '0'} ₽</p>
         <p><strong>Статус:</strong> ${formatStatus(lead.STATUS_ID)}</p>
         <p><strong>Дата создания:</strong> ${formatDate(lead.DATE_CREATE)}</p>
+        <hr>
+        ${productsHtml}
         <hr>
         <div class="footer">Лид №${lead.ID}</div>
         <script>
