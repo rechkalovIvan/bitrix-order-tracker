@@ -18,7 +18,7 @@ const BITRIX_WEBHOOK_URL = process.env.BITRIX_WEBHOOK_URL;
 // 🏠 Главная страница
 app.get('/', (req, res) => {
     res.send(`
-    <h1>Отслеживание заказа</h1>
+    <h1>Отслеживание лида</h1>
     <p>Пример ссылки: <a href="/track?key=a7x9k2m5">/track?key=a7x9k2m5</a></p>
   `);
 });
@@ -36,12 +36,12 @@ app.get('/track', async (req, res) => {
     }
 
     try {
-        // 📥 Поиск сделки по UF_CRM_1754162105
-        const response = await fetch(BITRIX_WEBHOOK_URL + 'crm.deal.list', {
+        // 📥 Поиск лида по UF_CRM_1754490207019
+        const response = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.list', {
             method: 'POST',
             body: JSON.stringify({
-                filter: { UF_CRM_1754162105: key },
-                select: ['ID', 'TITLE', 'OPPORTUNITY', 'STAGE_ID', 'DATE_CREATE']
+                filter: { UF_CRM_1754490207019: key },
+                select: ['ID', 'TITLE', 'OPPORTUNITY', 'STATUS_ID', 'DATE_CREATE']
             }),
             headers: { 'Content-Type': 'application/json' }
         });
@@ -49,16 +49,16 @@ app.get('/track', async (req, res) => {
         const data = await response.json();
 
         if (!data.result || data.result.length === 0) {
-            return res.status(404).send('Заказ не найден или ключ неверный.');
+            return res.status(404).send('Лид не найден или ключ неверный.');
         }
 
-        const deal = data.result[0];
+        const lead = data.result[0];
 
         // 🖼️ Отправляем HTML клиенту
         res.send(`
       <html>
       <head>
-        <title>Ваш заказ</title>
+        <title>Ваш лид</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
           h2 { color: #2c3e50; }
@@ -69,13 +69,13 @@ app.get('/track', async (req, res) => {
         </style>
       </head>
       <body>
-        <h2>Информация о заказе</h2>
-        <p><strong>Название:</strong> ${deal.TITLE || 'Не указано'}</p>
-        <p><strong>Сумма:</strong> ${deal.OPPORTUNITY || '0'} ₽</p>
-        <p><strong>Статус:</strong> ${formatStage(deal.STAGE_ID)}</p>
-        <p><strong>Дата создания:</strong> ${formatDate(deal.DATE_CREATE)}</p>
+        <h2>Информация о лиде</h2>
+        <p><strong>Название:</strong> ${lead.TITLE || 'Не указано'}</p>
+        <p><strong>Сумма:</strong> ${lead.OPPORTUNITY || '0'} ₽</p>
+        <p><strong>Статус:</strong> ${formatStatus(lead.STATUS_ID)}</p>
+        <p><strong>Дата создания:</strong> ${formatDate(lead.DATE_CREATE)}</p>
         <hr>
-        <div class="footer">Заказ №${deal.ID}</div>
+        <div class="footer">Лид №${lead.ID}</div>
         <script>
           // 🔄 Автообновление каждые 30 секунд
           setTimeout(() => location.reload(), 30000);
@@ -91,15 +91,14 @@ app.get('/track', async (req, res) => {
 });
 
 // 🛠 Вспомогательные функции
-function formatStage(stageId) {
+function formatStatus(statusId) {
     const map = {
         'NEW': '🔹 Новый',
-        7: 'Подтверждена',
-        'EXECUTING': '🚚 В доставке',
-        'WON': '✅ Выполнен',
-        'LOST': '❌ Отменён'
+        'IN_PROCESS': '⏳ В работе',
+        'CONVERTED': '✅ Конвертирован',
+        'JUNK': '❌ Спам'
     };
-    return map[stageId] || stageId;
+    return map[statusId] || statusId;
 }
 
 function formatDate(dateStr) {
