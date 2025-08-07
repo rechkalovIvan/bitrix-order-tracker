@@ -44,9 +44,9 @@ app.get('/track', async (req, res) => {
                 select: [
                     'ID', 'TITLE', 'OPPORTUNITY', 'STATUS_ID', 'DATE_CREATE',
                     'UF_CRM_BEGINDATE',           // Дата начала
-                    'UF_CRM_1638818267',          // Время начала (список)
+                    'UF_CRM_1638818267',          // Время начала (ID из списка)
                     'UF_CRM_5FB96D2488307',       // Дата завершения
-                    'UF_CRM_1638818801'           // Время завершения (список)
+                    'UF_CRM_1638818801'           // Время завершения (ID из списка)
                 ]
             }),
             headers: { 'Content-Type': 'application/json' }
@@ -130,12 +130,38 @@ app.get('/track', async (req, res) => {
             }
         };
 
-        // 🕐 Форматируем время (просто отображаем как есть, так как это список)
-        const formatTimeList = (timeValue) => {
-            if (!timeValue) return '—';
-            // Если это ID значения списка, можно добавить маппинг
-            return timeValue;
+        // 🕐 Получаем значения списка для времени
+        const getTimeListValue = async (fieldId, valueId) => {
+            if (!valueId) return '—';
+
+            try {
+                const listResponse = await fetch(BITRIX_WEBHOOK_URL + 'userfieldconfig.get', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        entityTypeName: 'CRM_LEAD',
+                        fieldName: fieldId
+                    }),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const listData = await listResponse.json();
+
+                // Если удалось получить конфигурацию поля
+                if (listData.result && listData.result.list) {
+                    const listItem = listData.result.list.find(item => item.ID == valueId);
+                    return listItem ? listItem.VALUE : valueId;
+                }
+
+                return valueId; // Возвращаем ID если не удалось получить значение
+            } catch (err) {
+                console.error('Ошибка при получении списка:', err);
+                return valueId; // Возвращаем ID в случае ошибки
+            }
         };
+
+        // Получаем значения времени (асинхронно)
+        const timeStart = lead.UF_CRM_1638818267 ? await getTimeListValue('UF_CRM_1638818267', lead.UF_CRM_1638818267) : '—';
+        const timeEnd = lead.UF_CRM_1638818801 ? await getTimeListValue('UF_CRM_1638818801', lead.UF_CRM_1638818801) : '—';
 
         // 🖼️ Отправляем HTML клиенту
         res.send(`
@@ -165,13 +191,13 @@ app.get('/track', async (req, res) => {
                 <strong>Дата начала:</strong> ${formatDateField(lead.UF_CRM_BEGINDATE)}
             </div>
             <div class="date-item">
-                <strong>Время начала:</strong> ${formatTimeList(lead.UF_CRM_1638818267)}
+                <strong>Время начала:</strong> ${timeStart}
             </div>
             <div class="date-item">
                 <strong>Дата завершения:</strong> ${formatDateField(lead.UF_CRM_5FB96D2488307)}
             </div>
             <div class="date-item">
-                <strong>Время завершения:</strong> ${formatTimeList(lead.UF_CRM_1638818801)}
+                <strong>Время завершения:</strong> ${timeEnd}
             </div>
         </div>
 
