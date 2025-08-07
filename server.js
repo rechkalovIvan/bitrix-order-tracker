@@ -41,7 +41,13 @@ app.get('/track', async (req, res) => {
             method: 'POST',
             body: JSON.stringify({
                 filter: { UF_CRM_1754490207019: key },
-                select: ['ID', 'TITLE', 'OPPORTUNITY', 'STATUS_ID', 'DATE_CREATE']
+                select: [
+                    'ID', 'TITLE', 'OPPORTUNITY', 'STATUS_ID', 'DATE_CREATE',
+                    'UF_CRM_BEGINDATE',           // Дата начала
+                    'UF_CRM_1638818267',          // Время начала (исправлено)
+                    'UF_CRM_5FB96D2488307',       // Дата завершения
+                    'UF_CRM_1638818801'           // Время завершения
+                ]
             }),
             headers: { 'Content-Type': 'application/json' }
         });
@@ -113,6 +119,32 @@ app.get('/track', async (req, res) => {
             productsHtml = '<h3>Товары:</h3><p style="color: red;">Ошибка загрузки товаров</p>';
         }
 
+        // 📅 Форматируем дополнительные даты
+        const formatDateField = (dateStr) => {
+            if (!dateStr) return '—';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('ru-RU');
+            } catch {
+                return dateStr;
+            }
+        };
+
+        const formatTimeField = (timeStr) => {
+            if (!timeStr) return '—';
+            try {
+                // Если это timestamp
+                if (!isNaN(timeStr) && timeStr.toString().length === 10) {
+                    const date = new Date(parseInt(timeStr) * 1000);
+                    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                }
+                // Если это строка времени
+                return timeStr;
+            } catch {
+                return timeStr;
+            }
+        };
+
         // 🖼️ Отправляем HTML клиенту
         res.send(`
       <html>
@@ -125,6 +157,8 @@ app.get('/track', async (req, res) => {
           strong { color: #16a085; }
           hr { border: 1px solid #eee; }
           .footer { font-size: 12px; color: #7f8c8d; margin-top: 30px; }
+          .dates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+          .date-item { background: #f8f9fa; padding: 10px; border-radius: 4px; }
         </style>
       </head>
       <body>
@@ -133,6 +167,22 @@ app.get('/track', async (req, res) => {
         <p><strong>Сумма:</strong> ${lead.OPPORTUNITY || '0'} ₽</p>
         <p><strong>Статус:</strong> ${formatStatus(lead.STATUS_ID)}</p>
         <p><strong>Дата создания:</strong> ${formatDate(lead.DATE_CREATE)}</p>
+        
+        <div class="dates-grid">
+            <div class="date-item">
+                <strong>Дата начала:</strong> ${formatDateField(lead.UF_CRM_BEGINDATE)}
+            </div>
+            <div class="date-item">
+                <strong>Время начала:</strong> ${formatTimeField(lead.UF_CRM_1638818267)}
+            </div>
+            <div class="date-item">
+                <strong>Дата завершения:</strong> ${formatDateField(lead.UF_CRM_5FB96D2488307)}
+            </div>
+            <div class="date-item">
+                <strong>Время завершения:</strong> ${formatTimeField(lead.UF_CRM_1638818801)}
+            </div>
+        </div>
+
         <hr>
         ${productsHtml}
         <hr>
