@@ -44,9 +44,9 @@ app.get('/track', async (req, res) => {
                 select: [
                     'ID', 'TITLE', 'OPPORTUNITY', 'STATUS_ID', 'DATE_CREATE',
                     'UF_CRM_BEGINDATE',           // Дата начала
-                    'UF_CRM_1638818267',          // Время начала (исправлено)
+                    'UF_CRM_1638818267',          // Время начала (список)
                     'UF_CRM_5FB96D2488307',       // Дата завершения
-                    'UF_CRM_1638818801'           // Время завершения
+                    'UF_CRM_1638818801'           // Время завершения (список)
                 ]
             }),
             headers: { 'Content-Type': 'application/json' }
@@ -119,7 +119,7 @@ app.get('/track', async (req, res) => {
             productsHtml = '<h3>Товары:</h3><p style="color: red;">Ошибка загрузки товаров</p>';
         }
 
-        // 📅 Форматируем дополнительные даты
+        // 📅 Форматируем даты
         const formatDateField = (dateStr) => {
             if (!dateStr) return '—';
             try {
@@ -130,19 +130,11 @@ app.get('/track', async (req, res) => {
             }
         };
 
-        const formatTimeField = (timeStr) => {
-            if (!timeStr) return '—';
-            try {
-                // Если это timestamp
-                if (!isNaN(timeStr) && timeStr.toString().length === 10) {
-                    const date = new Date(parseInt(timeStr) * 1000);
-                    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                }
-                // Если это строка времени
-                return timeStr;
-            } catch {
-                return timeStr;
-            }
+        // 🕐 Форматируем время (просто отображаем как есть, так как это список)
+        const formatTimeList = (timeValue) => {
+            if (!timeValue) return '—';
+            // Если это ID значения списка, можно добавить маппинг
+            return timeValue;
         };
 
         // 🖼️ Отправляем HTML клиенту
@@ -173,13 +165,13 @@ app.get('/track', async (req, res) => {
                 <strong>Дата начала:</strong> ${formatDateField(lead.UF_CRM_BEGINDATE)}
             </div>
             <div class="date-item">
-                <strong>Время начала:</strong> ${formatTimeField(lead.UF_CRM_1638818267)}
+                <strong>Время начала:</strong> ${formatTimeList(lead.UF_CRM_1638818267)}
             </div>
             <div class="date-item">
                 <strong>Дата завершения:</strong> ${formatDateField(lead.UF_CRM_5FB96D2488307)}
             </div>
             <div class="date-item">
-                <strong>Время завершения:</strong> ${formatTimeField(lead.UF_CRM_1638818801)}
+                <strong>Время завершения:</strong> ${formatTimeList(lead.UF_CRM_1638818801)}
             </div>
         </div>
 
