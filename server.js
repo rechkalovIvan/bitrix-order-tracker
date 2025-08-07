@@ -130,38 +130,45 @@ app.get('/track', async (req, res) => {
             }
         };
 
-        // 🕐 Получаем значения списка для времени
-        const getTimeListValue = async (fieldId, valueId) => {
-            if (!valueId) return '—';
-
+        // 🕐 Получаем значения списка для времени через lists.field.get
+        const getTimeListValues = async (fieldName) => {
             try {
-                const listResponse = await fetch(BITRIX_WEBHOOK_URL + 'userfieldconfig.get', {
+                const listResponse = await fetch(BITRIX_WEBHOOK_URL + 'lists.field.get', {
                     method: 'POST',
                     body: JSON.stringify({
-                        entityTypeName: 'CRM_LEAD',
-                        fieldName: fieldId
+                        IBLOCK_TYPE_ID: 'crm_dynamic_lists',
+                        IBLOCK_ID: 0,
+                        FIELD_ID: fieldName
                     }),
                     headers: { 'Content-Type': 'application/json' }
                 });
 
                 const listData = await listResponse.json();
 
-                // Если удалось получить конфигурацию поля
-                if (listData.result && listData.result.list) {
-                    const listItem = listData.result.list.find(item => item.ID == valueId);
-                    return listItem ? listItem.VALUE : valueId;
+                if (listData.result && listData.result.LIST) {
+                    const valueMap = {};
+                    listData.result.LIST.forEach(item => {
+                        valueMap[item.ID] = item.VALUE;
+                    });
+                    return valueMap;
                 }
 
-                return valueId; // Возвращаем ID если не удалось получить значение
+                return {};
             } catch (err) {
-                console.error('Ошибка при получении списка:', err);
-                return valueId; // Возвращаем ID в случае ошибки
+                console.error(`Ошибка при получении списка ${fieldName}:`, err);
+                return {};
             }
         };
 
-        // Получаем значения времени (асинхронно)
-        const timeStart = lead.UF_CRM_1638818267 ? await getTimeListValue('UF_CRM_1638818267', lead.UF_CRM_1638818267) : '—';
-        const timeEnd = lead.UF_CRM_1638818801 ? await getTimeListValue('UF_CRM_1638818801', lead.UF_CRM_1638818801) : '—';
+        // Получаем маппинги для полей времени
+        const timeStartMap = await getTimeListValues('UF_CRM_1638818267');
+        const timeEndMap = await getTimeListValues('UF_CRM_1638818801');
+
+        // Получаем значения времени
+        const timeStart = lead.UF_CRM_1638818267 ?
+            (timeStartMap[lead.UF_CRM_1638818267] || lead.UF_CRM_1638818267) : '—';
+        const timeEnd = lead.UF_CRM_1638818801 ?
+            (timeEndMap[lead.UF_CRM_1638818801] || lead.UF_CRM_1638818801) : '—';
 
         // 🖼️ Отправляем HTML клиенту
         res.send(`
