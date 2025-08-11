@@ -119,6 +119,32 @@ app.get('/track', async (req, res) => {
             productsHtml = '<h3>Товары:</h3><p style="color: red;">Ошибка загрузки товаров</p>';
         }
 
+        // 📋 Получаем описания пользовательских полей для маппинга списков
+        let fieldMappings = {};
+        try {
+            const fieldsResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.userfields', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const fieldsData = await fieldsResponse.json();
+            const userFields = fieldsData.result || [];
+
+            // Создаем маппинг для полей времени
+            const timeFields = ['UF_CRM_1638818267', 'UF_CRM_1638818801'];
+            timeFields.forEach(fieldName => {
+                const field = userFields.find(f => f.FIELD_NAME === fieldName);
+                if (field && field.LIST && field.LIST.length > 0) {
+                    fieldMappings[fieldName] = {};
+                    field.LIST.forEach(item => {
+                        fieldMappings[fieldName][item.ID] = item.VALUE;
+                    });
+                }
+            });
+        } catch (fieldErr) {
+            console.error('Ошибка при получении пользовательских полей:', fieldErr);
+        }
+
         // 📅 Форматируем даты
         const formatDateField = (dateStr) => {
             if (!dateStr) return '—';
@@ -130,45 +156,18 @@ app.get('/track', async (req, res) => {
             }
         };
 
-        // 🕐 Получаем значения списка для времени через lists.field.get
-        const getTimeListValues = async (fieldName) => {
-            try {
-                const listResponse = await fetch(BITRIX_WEBHOOK_URL + 'lists.field.get', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        IBLOCK_TYPE_ID: 'crm_dynamic_lists',
-                        IBLOCK_ID: 0,
-                        FIELD_ID: fieldName
-                    }),
-                    headers: { 'Content-Type': 'application/json' }
-                });
+        // 🕐 Форматируем время из списков
+        const formatTimeList = (fieldId, fieldName) => {
+            if (!fieldId) return '—';
 
-                const listData = await listResponse.json();
-
-                if (listData.result && listData.result.LIST) {
-                    const valueMap = {};
-                    listData.result.LIST.forEach(item => {
-                        valueMap[item.ID] = item.VALUE;
-                    });
-                    return valueMap;
-                }
-
-                return {};
-            } catch (err) {
-                console.error(`Ошибка при получении списка ${fieldName}:`, err);
-                return {};
+            // Если есть маппинг для этого поля, используем его
+            if (fieldMappings[fieldName] && fieldMappings[fieldName][fieldId]) {
+                return fieldMappings[fieldName][fieldId];
             }
+
+            // Если нет маппинга, возвращаем как есть
+            return fieldId;
         };
-
-        // Получаем маппинги для полей времени
-        const timeStartMap = await getTimeListValues('UF_CRM_1638818267');
-        const timeEndMap = await getTimeListValues('UF_CRM_1638818801');
-
-        // Получаем значения времени
-        const timeStart = lead.UF_CRM_1638818267 ?
-            (timeStartMap[lead.UF_CRM_1638818267] || lead.UF_CRM_1638818267) : '—';
-        const timeEnd = lead.UF_CRM_1638818801 ?
-            (timeEndMap[lead.UF_CRM_1638818801] || lead.UF_CRM_1638818801) : '—';
 
         // 🖼️ Отправляем HTML клиенту
         res.send(`
@@ -198,13 +197,13 @@ app.get('/track', async (req, res) => {
                 <strong>Дата начала:</strong> ${formatDateField(lead.UF_CRM_BEGINDATE)}
             </div>
             <div class="date-item">
-                <strong>Время начала:</strong> ${timeStart}
+                <strong>Время начала:</strong> ${formatTimeList(lead.UF_CRM_1638818267, 'UF_CRM_1638818267')}
             </div>
             <div class="date-item">
                 <strong>Дата завершения:</strong> ${formatDateField(lead.UF_CRM_5FB96D2488307)}
             </div>
             <div class="date-item">
-                <strong>Время завершения:</strong> ${timeEnd}
+                <strong>Время завершения:</strong> ${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}
             </div>
         </div>
 
