@@ -122,23 +122,32 @@ app.get('/track', async (req, res) => {
         // 📋 Получаем описания пользовательских полей для маппинга списков
         let fieldMappings = {};
         try {
-            const fieldsResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.userfields', {
+            const fieldsResponse = await fetch(BITRIX_WEBHOOK_URL + 'userfield.list', {
                 method: 'POST',
+                body: JSON.stringify({
+                    FILTER: {
+                        ENTITY_ID: 'CRM_LEAD',
+                        FIELD_NAME: ['UF_CRM_1638818267', 'UF_CRM_1638818801']
+                    }
+                }),
                 headers: { 'Content-Type': 'application/json' }
             });
 
             const fieldsData = await fieldsResponse.json();
+            console.log('User fields data:', JSON.stringify(fieldsData, null, 2)); // Отладка
+
             const userFields = fieldsData.result || [];
 
             // Создаем маппинг для полей времени
             const timeFields = ['UF_CRM_1638818267', 'UF_CRM_1638818801'];
             timeFields.forEach(fieldName => {
                 const field = userFields.find(f => f.FIELD_NAME === fieldName);
-                if (field && field.LIST && field.LIST.length > 0) {
+                if (field && field.USER_TYPE_ID === 'enumeration' && field.ENUM_ITEMS && field.ENUM_ITEMS.length > 0) {
                     fieldMappings[fieldName] = {};
-                    field.LIST.forEach(item => {
+                    field.ENUM_ITEMS.forEach(item => {
                         fieldMappings[fieldName][item.ID] = item.VALUE;
                     });
+                    console.log(`Mapping for ${fieldName}:`, fieldMappings[fieldName]); // Отладка
                 }
             });
         } catch (fieldErr) {
@@ -158,6 +167,9 @@ app.get('/track', async (req, res) => {
 
         // 🕐 Форматируем время из списков
         const formatTimeList = (fieldId, fieldName) => {
+            console.log(`Formatting ${fieldName}: ${fieldId}`); // Отладка
+            console.log(`Available mappings:`, fieldMappings[fieldName]); // Отладка
+
             if (!fieldId) return '—';
 
             // Если есть маппинг для этого поля, используем его
