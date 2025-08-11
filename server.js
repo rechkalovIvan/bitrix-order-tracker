@@ -167,18 +167,12 @@ app.get('/track', async (req, res) => {
 
         // 🕐 Форматируем время из списков
         const formatTimeList = (fieldId, fieldName) => {
-            console.log(`Formatting ${fieldName}: ${fieldId}`); // Отладка
-            console.log(`Available mappings:`, fieldMappings[fieldName]); // Отладка
+            console.log(`Raw fieldId for ${fieldName}:`, fieldId);
+            console.log(`FieldId type:`, typeof fieldId);
+            console.log(`Full lead data:`, JSON.stringify(lead));
 
             if (!fieldId) return '—';
-
-            // Если есть маппинг для этого поля, используем его
-            if (fieldMappings[fieldName] && fieldMappings[fieldName][fieldId]) {
-                return fieldMappings[fieldName][fieldId];
-            }
-
-            // Если нет маппинга, возвращаем как есть
-            return fieldId;
+            return `ID: ${fieldId}`; // Временно показываем ID для проверки
         };
 
         // 🖼️ Отправляем HTML клиенту
