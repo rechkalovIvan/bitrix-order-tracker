@@ -168,6 +168,29 @@ app.get('/track', async (req, res) => {
           .dates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
           .date-item { background: #f8f9fa; padding: 10px; border-radius: 4px; }
           .status { background: #e8f4f8; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+          .confirm-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px 0;
+          }
+          .confirm-btn:hover {
+            background: #45a049;
+          }
+          .confirm-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+          }
+          .success-message {
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 18px;
+            margin: 20px 0;
+          }
         </style>
       </head>
       <body>
@@ -194,9 +217,54 @@ app.get('/track', async (req, res) => {
 
         <hr>
         ${productsHtml}
+        
+        <div id="button-container">
+          <button class="confirm-btn" onclick="confirmLead(${lead.ID})" id="confirmButton">Подтверждаю</button>
+        </div>
+        
+        <div id="message"></div>
+
         <script>
-          // Автообновление каждые 30 секунд
-          setTimeout(() => location.reload(), 30000);
+          async function confirmLead(leadId) {
+            const button = document.getElementById('confirmButton');
+            const message = document.getElementById('message');
+            
+            // Блокируем кнопку
+            button.disabled = true;
+            button.textContent = 'Обработка...';
+            
+            try {
+              // Отправляем запрос на обновление статуса лида
+              const response = await fetch('/confirm-lead', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  leadId: leadId,
+                  key: '${key}'
+                })
+              });
+              
+              const result = await response.json();
+              
+              if (result.success) {
+                // Показываем сообщение об успехе
+                message.innerHTML = '<div class="success-message">✅ Согласована</div>';
+                // Меняем текст кнопки
+                button.textContent = 'Согласована';
+                button.style.background = '#2196F3';
+              } else {
+                message.innerHTML = '<div style="color: red;">❌ Ошибка: ' + result.error + '</div>';
+                button.disabled = false;
+                button.textContent = 'Подтверждаю';
+              }
+            } catch (error) {
+              message.innerHTML = '<div style="color: red;">❌ Ошибка: ' + error.message + '</div>';
+              button.disabled = false;
+              button.textContent = 'Подтверждаю';
+            }
+          }
         </script>
       </body>
       </html>
@@ -205,6 +273,63 @@ app.get('/track', async (req, res) => {
     } catch (err) {
         console.error('Ошибка при обработке запроса:', err);
         res.status(500).send('Ошибка сервера. Попробуйте позже.');
+    }
+});
+
+// Обработчик подтверждения лида
+app.post('/confirm-lead', express.json(), async (req, res) => {
+    const { leadId, key } = req.body;
+
+    if (!leadId || !key) {
+        return res.json({ success: false, error: 'Некорректные данные' });
+    }
+
+    if (!fetch) {
+        return res.json({ success: false, error: 'Сервер не загрузил необходимые модули' });
+    }
+
+    try {
+        // Проверяем, что лид принадлежит этому ключу
+        const leadResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.list', {
+            method: 'POST',
+            body: JSON.stringify({
+                filter: {
+                    ID: leadId,
+                    UF_CRM_1754490207019: key
+                },
+                select: ['ID']
+            }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const leadData = await leadResponse.json();
+        if (!leadData.result || leadData.result.length === 0) {
+            return res.json({ success: false, error: 'Лид не найден или ключ неверный' });
+        }
+
+        // Обновляем статус лида на ID 7
+        const updateResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.update', {
+            method: 'POST',
+            body: JSON.stringify({
+                id: leadId,
+                fields: {
+                    STATUS_ID: '7'
+                }
+            }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const updateData = await updateResponse.json();
+
+        if (updateData.result) {
+            res.json({ success: true });
+        } else {
+            res.json({ success: false, error: 'Не удалось обновить статус лида' });
+        }
+
+    } catch (err) {
+        console.error('Ошибка при подтверждении лида:', err);
+        res.json({ success: false, error: 'Ошибка сервера' });
     }
 });
 
