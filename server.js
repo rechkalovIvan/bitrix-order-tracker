@@ -167,10 +167,15 @@ app.get('/track', async (req, res) => {
           hr { border: 1px solid #eee; }
           .dates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
           .date-item { background: #f8f9fa; padding: 10px; border-radius: 4px; }
+          .status { background: #e8f4f8; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
         </style>
       </head>
       <body>
         <h2>Проверьте пожалуйста и подтвердите:</h2>
+        
+        <div class="status">
+            <strong>Статус:</strong> ${lead.STATUS_ID}
+        </div>
         
         <div class="dates-grid">
             <div class="date-item">
