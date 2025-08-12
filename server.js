@@ -119,39 +119,62 @@ app.get('/track', async (req, res) => {
             productsHtml = '<h3>Товары:</h3><p style="color: red;">Ошибка загрузки товаров</p>';
         }
 
-        // 📋 Получаем описания пользовательских полей для маппинга списков
+        // 📋 Получаем значения списков для полей времени
         let fieldMappings = {};
-        try {
-            const fieldsResponse = await fetch(BITRIX_WEBHOOK_URL + 'userfield.list', {
-                method: 'POST',
-                body: JSON.stringify({
-                    FILTER: {
-                        ENTITY_ID: 'CRM_LEAD',
-                        FIELD_NAME: ['UF_CRM_1638818267', 'UF_CRM_1638818801']
-                    }
-                }),
-                headers: { 'Content-Type': 'application/json' }
-            });
 
-            const fieldsData = await fieldsResponse.json();
-            console.log('User fields data:', JSON.stringify(fieldsData, null, 2)); // Отладка
+        // Функция для получения значений списка по имени поля
+        const getListItems = async (fieldName) => {
+            try {
+                // Сначала получаем информацию о поле
+                const fieldInfoResponse = await fetch(BITRIX_WEBHOOK_URL + 'userfield.list', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        FILTER: {
+                            ENTITY_ID: 'CRM_LEAD',
+                            FIELD_NAME: fieldName
+                        }
+                    }),
+                    headers: { 'Content-Type': 'application/json' }
+                });
 
-            const userFields = fieldsData.result || [];
+                // Если userfield.list не работает, пробуем альтернативный подход
+                const itemsResponse = await fetch(BITRIX_WEBHOOK_URL + 'userfield.enumeration.items.get', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        fieldName: fieldName,
+                        entityType: 'CRM_LEAD'
+                    }),
+                    headers: { 'Content-Type': 'application/json' }
+                });
 
-            // Создаем маппинг для полей времени
-            const timeFields = ['UF_CRM_1638818267', 'UF_CRM_1638818801'];
-            timeFields.forEach(fieldName => {
-                const field = userFields.find(f => f.FIELD_NAME === fieldName);
-                if (field && field.USER_TYPE_ID === 'enumeration' && field.ENUM_ITEMS && field.ENUM_ITEMS.length > 0) {
-                    fieldMappings[fieldName] = {};
-                    field.ENUM_ITEMS.forEach(item => {
-                        fieldMappings[fieldName][item.ID] = item.VALUE;
+                const itemsData = await itemsResponse.json();
+                console.log(`Items for ${fieldName}:`, JSON.stringify(itemsData, null, 2));
+
+                if (itemsData.result && itemsData.result.items) {
+                    const mapping = {};
+                    itemsData.result.items.forEach(item => {
+                        mapping[item.ID] = item.VALUE;
                     });
-                    console.log(`Mapping for ${fieldName}:`, fieldMappings[fieldName]); // Отладка
+                    return mapping;
                 }
-            });
-        } catch (fieldErr) {
-            console.error('Ошибка при получении пользовательских полей:', fieldErr);
+            } catch (err) {
+                console.error(`Ошибка при получении значений для ${fieldName}:`, err);
+            }
+            return null;
+        };
+
+        // Получаем маппинги для полей времени
+        try {
+            const timeFields = ['UF_CRM_1638818267', 'UF_CRM_1638818801'];
+            for (const fieldName of timeFields) {
+                const mapping = await getListItems(fieldName);
+                if (mapping) {
+                    fieldMappings[fieldName] = mapping;
+                    console.log(`Mapping for ${fieldName}:`, mapping);
+                }
+            }
+        } catch (err) {
+            console.error('Ошибка при получении маппингов:', err);
         }
 
         // 📅 Форматируем даты
@@ -167,12 +190,18 @@ app.get('/track', async (req, res) => {
 
         // 🕐 Форматируем время из списков
         const formatTimeList = (fieldId, fieldName) => {
-            console.log(`Raw fieldId for ${fieldName}:`, fieldId);
-            console.log(`FieldId type:`, typeof fieldId);
-            console.log(`Full lead data:`, JSON.stringify(lead));
+            console.log(`Formatting ${fieldName}: ${fieldId}`);
+            console.log(`Available mappings:`, fieldMappings[fieldName]);
 
             if (!fieldId) return '—';
-            return `ID: ${fieldId}`; // Временно показываем ID для проверки
+
+            // Если есть маппинг для этого поля, используем его
+            if (fieldMappings[fieldName] && fieldMappings[fieldName][fieldId]) {
+                return fieldMappings[fieldName][fieldId];
+            }
+
+            // Если нет маппинга, возвращаем как есть
+            return `ID: ${fieldId}`;
         };
 
         // 🖼️ Отправляем HTML клиенту
