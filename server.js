@@ -1,8 +1,7 @@
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 10000; // Render ожидает порт 10000 по умолчанию
+const PORT = process.env.PORT || 10000;
 
-// 🚀 Динамический импорт node-fetch (ESM)
 let fetch;
 (async () => {
     try {
@@ -12,10 +11,8 @@ let fetch;
     }
 })();
 
-// 🔐 Вебхук из Битрикс24 (установи в Render как переменную окружения!)
 const BITRIX_WEBHOOK_URL = process.env.BITRIX_WEBHOOK_URL;
 
-// 🏠 Главная страница
 app.get('/', (req, res) => {
     res.send(`
     <h1>Отслеживание лида</h1>
@@ -23,7 +20,6 @@ app.get('/', (req, res) => {
   `);
 });
 
-// 🔍 Обработчик /track?key=...
 app.get('/track', async (req, res) => {
     const { key } = req.query;
 
@@ -36,8 +32,8 @@ app.get('/track', async (req, res) => {
     }
 
     try {
-        // 📥 Поиск лида по UF_CRM_1754490207019
-        const response = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.list', {
+        // 1. Поиск лида по ключу
+        const leadResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.list', {
             method: 'POST',
             body: JSON.stringify({
                 filter: { UF_CRM_1754490207019: key },
@@ -52,15 +48,40 @@ app.get('/track', async (req, res) => {
             headers: { 'Content-Type': 'application/json' }
         });
 
-        const data = await response.json();
-
-        if (!data.result || data.result.length === 0) {
+        const leadData = await leadResponse.json();
+        if (!leadData.result || leadData.result.length === 0) {
             return res.status(404).send('Лид не найден или ключ неверный.');
         }
 
-        const lead = data.result[0];
+        const lead = leadData.result[0];
 
-        // 🛒 Получаем товары лида
+        // 2. Получаем все пользовательские поля лидов для списков
+        let fieldMappings = {};
+        try {
+            const userFieldsResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.userfield.list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const userFieldsData = await userFieldsResponse.json();
+            const userFields = userFieldsData.result || [];
+
+            // Обрабатываем нужные поля
+            const timeFields = ['UF_CRM_1638818267', 'UF_CRM_1638818801'];
+            userFields.forEach(field => {
+                if (timeFields.includes(field.FIELD_NAME) && field.LIST) {
+                    const mapping = {};
+                    field.LIST.forEach(item => {
+                        mapping[item.ID] = item.VALUE;
+                    });
+                    fieldMappings[field.FIELD_NAME] = mapping;
+                }
+            });
+        } catch (err) {
+            console.error('Ошибка при получении пользовательских полей:', err);
+        }
+
+        // 3. Получаем товары лида
         let productsHtml = '<h3>Товары:</h3><p>Нет товаров</p>';
         try {
             const productsResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.productrows.get', {
@@ -119,92 +140,21 @@ app.get('/track', async (req, res) => {
             productsHtml = '<h3>Товары:</h3><p style="color: red;">Ошибка загрузки товаров</p>';
         }
 
-        // 📋 Получаем значения списков для полей времени
-        let fieldMappings = {};
-
-        // Функция для получения значений списка по имени поля
-        const getListItems = async (fieldName) => {
-            try {
-                // Сначала получаем информацию о поле
-                const fieldInfoResponse = await fetch(BITRIX_WEBHOOK_URL + 'userfield.list', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        FILTER: {
-                            ENTITY_ID: 'CRM_LEAD',
-                            FIELD_NAME: fieldName
-                        }
-                    }),
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                // Если userfield.list не работает, пробуем альтернативный подход
-                const itemsResponse = await fetch(BITRIX_WEBHOOK_URL + 'userfield.enumeration.items.get', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        fieldName: fieldName,
-                        entityType: 'CRM_LEAD'
-                    }),
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const itemsData = await itemsResponse.json();
-                console.log(`Items for ${fieldName}:`, JSON.stringify(itemsData, null, 2));
-
-                if (itemsData.result && itemsData.result.items) {
-                    const mapping = {};
-                    itemsData.result.items.forEach(item => {
-                        mapping[item.ID] = item.VALUE;
-                    });
-                    return mapping;
-                }
-            } catch (err) {
-                console.error(`Ошибка при получении значений для ${fieldName}:`, err);
-            }
-            return null;
-        };
-
-        // Получаем маппинги для полей времени
-        try {
-            const timeFields = ['UF_CRM_1638818267', 'UF_CRM_1638818801'];
-            for (const fieldName of timeFields) {
-                const mapping = await getListItems(fieldName);
-                if (mapping) {
-                    fieldMappings[fieldName] = mapping;
-                    console.log(`Mapping for ${fieldName}:`, mapping);
-                }
-            }
-        } catch (err) {
-            console.error('Ошибка при получении маппингов:', err);
-        }
-
-        // 📅 Форматируем даты
-        const formatDateField = (dateStr) => {
-            if (!dateStr) return '—';
-            try {
-                const date = new Date(dateStr);
-                return date.toLocaleDateString('ru-RU');
-            } catch {
-                return dateStr;
-            }
-        };
-
-        // 🕐 Форматируем время из списков
+        // 4. Форматируем значения времени
         const formatTimeList = (fieldId, fieldName) => {
-            console.log(`Formatting ${fieldName}: ${fieldId}`);
-            console.log(`Available mappings:`, fieldMappings[fieldName]);
-
             if (!fieldId) return '—';
 
-            // Если есть маппинг для этого поля, используем его
-            if (fieldMappings[fieldName] && fieldMappings[fieldName][fieldId]) {
-                return fieldMappings[fieldName][fieldId];
+            // Обработка множественных значений
+            if (Array.isArray(fieldId)) {
+                return fieldId.map(id =>
+                    fieldMappings[fieldName]?.[id] || `ID: ${id}`
+                ).join(', ');
             }
 
-            // Если нет маппинга, возвращаем как есть
-            return `ID: ${fieldId}`;
+            return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
         };
 
-        // 🖼️ Отправляем HTML клиенту
+        // 5. Отправляем HTML клиенту
         res.send(`
       <html>
       <head>
@@ -229,13 +179,13 @@ app.get('/track', async (req, res) => {
         
         <div class="dates-grid">
             <div class="date-item">
-                <strong>Дата начала:</strong> ${formatDateField(lead.UF_CRM_BEGINDATE)}
+                <strong>Дата начала:</strong> ${formatDate(lead.UF_CRM_BEGINDATE)}
             </div>
             <div class="date-item">
                 <strong>Время начала:</strong> ${formatTimeList(lead.UF_CRM_1638818267, 'UF_CRM_1638818267')}
             </div>
             <div class="date-item">
-                <strong>Дата завершения:</strong> ${formatDateField(lead.UF_CRM_5FB96D2488307)}
+                <strong>Дата завершения:</strong> ${formatDate(lead.UF_CRM_5FB96D2488307)}
             </div>
             <div class="date-item">
                 <strong>Время завершения:</strong> ${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}
@@ -247,7 +197,7 @@ app.get('/track', async (req, res) => {
         <hr>
         <div class="footer">Лид №${lead.ID}</div>
         <script>
-          // 🔄 Автообновление каждые 30 секунд
+          // Автообновление каждые 30 секунд
           setTimeout(() => location.reload(), 30000);
         </script>
       </body>
@@ -260,7 +210,7 @@ app.get('/track', async (req, res) => {
     }
 });
 
-// 🛠 Вспомогательные функции
+// Вспомогательные функции
 function formatStatus(statusId) {
     const map = {
         'NEW': '🔹 Новый',
@@ -273,11 +223,14 @@ function formatStatus(statusId) {
 
 function formatDate(dateStr) {
     if (!dateStr) return '—';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('ru-RU');
+    try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('ru-RU');
+    } catch {
+        return dateStr;
+    }
 }
 
-// ✅ ВАЖНО: привязываемся к 0.0.0.0 и используем PORT из окружения
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Сервер запущен на порту ${PORT}`);
 });
