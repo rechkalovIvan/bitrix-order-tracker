@@ -165,17 +165,12 @@ app.get('/track', async (req, res) => {
           p { font-size: 16px; }
           strong { color: #16a085; }
           hr { border: 1px solid #eee; }
-          .footer { font-size: 12px; color: #7f8c8d; margin-top: 30px; }
           .dates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
           .date-item { background: #f8f9fa; padding: 10px; border-radius: 4px; }
         </style>
       </head>
       <body>
-        <h2>Информация о лиде</h2>
-        <p><strong>Название:</strong> ${lead.TITLE || 'Не указано'}</p>
-        <p><strong>Сумма:</strong> ${lead.OPPORTUNITY || '0'} ₽</p>
-        <p><strong>Статус:</strong> ${formatStatus(lead.STATUS_ID)}</p>
-        <p><strong>Дата создания:</strong> ${formatDate(lead.DATE_CREATE)}</p>
+        <h2>Проверьте пожалуйста и подтвердите:</h2>
         
         <div class="dates-grid">
             <div class="date-item">
@@ -194,8 +189,6 @@ app.get('/track', async (req, res) => {
 
         <hr>
         ${productsHtml}
-        <hr>
-        <div class="footer">Лид №${lead.ID}</div>
         <script>
           // Автообновление каждые 30 секунд
           setTimeout(() => location.reload(), 30000);
@@ -211,16 +204,6 @@ app.get('/track', async (req, res) => {
 });
 
 // Вспомогательные функции
-function formatStatus(statusId) {
-    const map = {
-        'NEW': '🔹 Новый',
-        'IN_PROCESS': '⏳ В работе',
-        'CONVERTED': '✅ Конвертирован',
-        'JUNK': '❌ Спам'
-    };
-    return map[statusId] || statusId;
-}
-
 function formatDate(dateStr) {
     if (!dateStr) return '—';
     try {
