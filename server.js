@@ -235,6 +235,7 @@ app.get('/track', async (req, res) => {
           async function confirmLead(leadId) {
             const button = document.getElementById('confirmButton');
             const message = document.getElementById('message');
+            const buttonContainer = document.getElementById('button-container');
             
             // Блокируем кнопку
             button.disabled = true;
@@ -256,11 +257,11 @@ app.get('/track', async (req, res) => {
               const result = await response.json();
               
               if (result.success) {
-                // Показываем сообщение об успехе
+                // Перезагружаем страницу через 1 секунду, чтобы показать обновленный статус
                 message.innerHTML = '<div class="success-message">✅ Согласована</div>';
-                // Меняем текст кнопки
-                button.textContent = 'Согласована';
-                button.style.background = '#2196F3';
+                setTimeout(() => {
+                  location.reload();
+                }, 1000);
               } else {
                 message.innerHTML = '<div style="color: red;">❌ Ошибка: ' + result.error + '</div>';
                 button.disabled = false;
