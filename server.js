@@ -154,7 +154,15 @@ app.get('/track', async (req, res) => {
             return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
         };
 
-        // 5. Генерируем HTML кнопки (если статус = 8)
+        // 5. Определяем заголовок в зависимости от статуса
+        let pageTitle = 'Проверьте пожалуйста и подтвердите:';
+        if (lead.STATUS_ID === '2') {
+            pageTitle = 'Предварительный расчет';
+        } else if (lead.STATUS_ID === '7') {
+            pageTitle = 'Согласовано';
+        }
+
+        // 6. Генерируем HTML кнопки (если статус = 8)
         let buttonHtml = '';
         if (lead.STATUS_ID === '8') {
             buttonHtml = `
@@ -165,7 +173,7 @@ app.get('/track', async (req, res) => {
             `;
         }
 
-        // 6. Отправляем HTML клиенту
+        // 7. Отправляем HTML клиенту
         res.send(`
       <html>
       <head>
@@ -205,7 +213,7 @@ app.get('/track', async (req, res) => {
         </style>
       </head>
       <body>
-        <h2>Проверьте пожалуйста и подтвердите:</h2>
+        <h2>${pageTitle}</h2>
         
         <div class="status">
             <strong>Статус:</strong> ${lead.STATUS_ID}
