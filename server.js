@@ -154,7 +154,18 @@ app.get('/track', async (req, res) => {
             return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
         };
 
-        // 5. Отправляем HTML клиенту
+        // 5. Генерируем HTML кнопки (если статус = 8)
+        let buttonHtml = '';
+        if (lead.STATUS_ID === '8') {
+            buttonHtml = `
+                <div id="button-container">
+                  <button class="confirm-btn" onclick="confirmLead(${lead.ID})" id="confirmButton">Все верно</button>
+                </div>
+                <div id="message"></div>
+            `;
+        }
+
+        // 6. Отправляем HTML клиенту
         res.send(`
       <html>
       <head>
@@ -218,11 +229,7 @@ app.get('/track', async (req, res) => {
         <hr>
         ${productsHtml}
         
-        <div id="button-container">
-          <button class="confirm-btn" onclick="confirmLead(${lead.ID})" id="confirmButton">Подтверждаю</button>
-        </div>
-        
-        <div id="message"></div>
+        ${buttonHtml}
 
         <script>
           async function confirmLead(leadId) {
@@ -257,12 +264,12 @@ app.get('/track', async (req, res) => {
               } else {
                 message.innerHTML = '<div style="color: red;">❌ Ошибка: ' + result.error + '</div>';
                 button.disabled = false;
-                button.textContent = 'Подтверждаю';
+                button.textContent = 'Все верно';
               }
             } catch (error) {
               message.innerHTML = '<div style="color: red;">❌ Ошибка: ' + error.message + '</div>';
               button.disabled = false;
-              button.textContent = 'Подтверждаю';
+              button.textContent = 'Все верно';
             }
           }
         </script>
@@ -289,13 +296,14 @@ app.post('/confirm-lead', express.json(), async (req, res) => {
     }
 
     try {
-        // Проверяем, что лид принадлежит этому ключу
+        // Проверяем, что лид принадлежит этому ключу и имеет статус 8
         const leadResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.list', {
             method: 'POST',
             body: JSON.stringify({
                 filter: {
                     ID: leadId,
-                    UF_CRM_1754490207019: key
+                    UF_CRM_1754490207019: key,
+                    STATUS_ID: '8'
                 },
                 select: ['ID']
             }),
@@ -304,7 +312,7 @@ app.post('/confirm-lead', express.json(), async (req, res) => {
 
         const leadData = await leadResponse.json();
         if (!leadData.result || leadData.result.length === 0) {
-            return res.json({ success: false, error: 'Лид не найден или ключ неверный' });
+            return res.json({ success: false, error: 'Лид не найден, ключ неверный или статус не 8' });
         }
 
         // Обновляем статус лида на ID 7
