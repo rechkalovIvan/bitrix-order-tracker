@@ -42,7 +42,8 @@ app.get('/track', async (req, res) => {
                     'UF_CRM_BEGINDATE',           // Дата начала
                     'UF_CRM_1638818267',          // Время начала (ID из списка)
                     'UF_CRM_5FB96D2488307',       // Дата завершения
-                    'UF_CRM_1638818801'           // Время завершения (ID из списка)
+                    'UF_CRM_1638818801',          // Время завершения (ID из списка)
+                    'UF_CRM_1614544756'           // Тип оборудования
                 ]
             }),
             headers: { 'Content-Type': 'application/json' }
@@ -173,7 +174,17 @@ app.get('/track', async (req, res) => {
             `;
         }
 
-        // 7. Отправляем HTML клиенту
+        // 7. Формируем HTML для типа оборудования (если поле заполнено)
+        let equipmentHtml = '';
+        if (lead.UF_CRM_1614544756) {
+            equipmentHtml = `
+                <div class="date-item">
+                    <strong>Тип оборудования:</strong> ${lead.UF_CRM_1614544756}
+                </div>
+            `;
+        }
+
+        // 8. Отправляем HTML клиенту
         res.send(`
       <html>
       <head>
@@ -232,6 +243,7 @@ app.get('/track', async (req, res) => {
             <div class="date-item">
                 <strong>Время завершения:</strong> ${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}
             </div>
+            ${equipmentHtml}
         </div>
 
         <hr>
