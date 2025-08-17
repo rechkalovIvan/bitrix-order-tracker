@@ -43,7 +43,7 @@ app.get('/track', async (req, res) => {
                     'UF_CRM_1638818267',          // Время начала (ID из списка)
                     'UF_CRM_5FB96D2488307',       // Дата завершения
                     'UF_CRM_1638818801',          // Время завершения (ID из списка)
-                    'UF_CRM_1614544756'           // Тип оборудования
+                    'UF_CRM_1614544756'           // Тип оборудования (ID из списка, может быть множественным)
                 ]
             }),
             headers: { 'Content-Type': 'application/json' }
@@ -68,7 +68,7 @@ app.get('/track', async (req, res) => {
             const userFields = userFieldsData.result || [];
 
             // Обрабатываем нужные поля
-            const timeFields = ['UF_CRM_1638818267', 'UF_CRM_1638818801'];
+            const timeFields = ['UF_CRM_1638818267', 'UF_CRM_1638818801', 'UF_CRM_1614544756'];
             userFields.forEach(field => {
                 if (timeFields.includes(field.FIELD_NAME) && field.LIST) {
                     const mapping = {};
@@ -155,7 +155,21 @@ app.get('/track', async (req, res) => {
             return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
         };
 
-        // 5. Определяем заголовок в зависимости от статуса
+        // 5. Форматируем тип оборудования
+        const formatEquipmentType = (fieldId, fieldName) => {
+            if (!fieldId) return '—';
+
+            // Обработка множественных значений
+            if (Array.isArray(fieldId)) {
+                return fieldId.map(id =>
+                    fieldMappings[fieldName]?.[id] || `ID: ${id}`
+                ).join(', ');
+            }
+
+            return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
+        };
+
+        // 6. Определяем заголовок в зависимости от статуса
         let pageTitle = 'Проверьте пожалуйста и подтвердите:';
         if (lead.STATUS_ID === '2') {
             pageTitle = 'Предварительный расчет';
@@ -163,7 +177,7 @@ app.get('/track', async (req, res) => {
             pageTitle = 'Согласовано';
         }
 
-        // 6. Генерируем HTML кнопки (если статус = 8)
+        // 7. Генерируем HTML кнопки (если статус = 8)
         let buttonHtml = '';
         if (lead.STATUS_ID === '8') {
             buttonHtml = `
@@ -174,17 +188,17 @@ app.get('/track', async (req, res) => {
             `;
         }
 
-        // 7. Формируем HTML для типа оборудования (если поле заполнено)
+        // 8. Подготавливаем HTML для типа оборудования (если поле заполнено)
         let equipmentHtml = '';
         if (lead.UF_CRM_1614544756) {
             equipmentHtml = `
                 <div class="date-item">
-                    <strong>Тип оборудования:</strong> ${lead.UF_CRM_1614544756}
+                    <strong>Тип оборудования:</strong> ${formatEquipmentType(lead.UF_CRM_1614544756, 'UF_CRM_1614544756')}
                 </div>
             `;
         }
 
-        // 8. Отправляем HTML клиенту
+        // 9. Отправляем HTML клиенту
         res.send(`
       <html>
       <head>
