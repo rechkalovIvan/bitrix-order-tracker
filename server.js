@@ -207,14 +207,26 @@ app.get('/track', async (req, res) => {
             pageTitle = 'Согласовано';
         }
 
-        // 10. Генерируем HTML кнопки (если статус = 8)
-        let buttonHtml = '';
+        // 10. Генерируем HTML слайдера (если статус = 8)
+        let sliderHtml = '';
         if (lead.STATUS_ID === '8') {
-            buttonHtml = `
-                <div id="button-container">
-                  <button class="confirm-btn" onclick="confirmLead(${lead.ID})" id="confirmButton">Все верно</button>
+            sliderHtml = `
+                <div id="slider-container" style="margin: 30px 0; padding: 20px;">
+                    <div id="unlock-slider" class="unlock-slider">
+                        <div class="slider-text">Сдвиньте для подтверждения</div>
+                        <div class="slider-track">
+                            <div class="slider-thumb" id="slider-thumb">
+                                <div class="thumb-icon">→</div>
+                            </div>
+                            <div class="slider-fill" id="slider-fill"></div>
+                        </div>
+                        <div class="slider-success" id="slider-success" style="display: none;">
+                            <div class="success-icon">✓</div>
+                            <div class="success-text">Подтверждено!</div>
+                        </div>
+                    </div>
+                    <div id="message"></div>
                 </div>
-                <div id="message"></div>
             `;
         }
 
@@ -242,28 +254,110 @@ app.get('/track', async (req, res) => {
           .dates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
           .date-item { background: #f8f9fa; padding: 10px; border-radius: 4px; }
           .status { background: #e8f4f8; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-          .confirm-btn {
-            background: #4CAF50;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 4px;
+          
+          /* Слайдер разблокировки */
+          .unlock-slider {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            user-select: none;
+          }
+          
+          .slider-text {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 14px;
+          }
+          
+          .slider-track {
+            position: relative;
+            height: 50px;
+            background: #e0e0e0;
+            border-radius: 25px;
+            overflow: hidden;
             cursor: pointer;
-            font-size: 16px;
-            margin: 20px 0;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
           }
-          .confirm-btn:hover {
-            background: #45a049;
+          
+          .slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0;
+            background: #4CAF50;
+            border-radius: 25px;
+            transition: width 0.1s ease;
           }
-          .confirm-btn:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
+          
+          .slider-thumb {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            z-index: 2;
           }
-          .success-message {
-            color: #4CAF50;
-            font-weight: bold;
+          
+          .slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.1);
+          }
+          
+          .thumb-icon {
             font-size: 18px;
-            margin: 20px 0;
+            color: #666;
+            font-weight: bold;
+          }
+          
+          .slider-success {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #4CAF50;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+          
+          .success-icon {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          
+          .success-text {
+            font-size: 16px;
+            font-weight: bold;
+          }
+          
+          .slider-success.show {
+            opacity: 1;
+          }
+          
+          .unlock-slider.completed .slider-track {
+            background: #4CAF50;
+          }
+          
+          .unlock-slider.completed .slider-thumb {
+            display: none;
           }
         </style>
       </head>
@@ -295,17 +389,162 @@ app.get('/track', async (req, res) => {
         
         ${additionalBlocks}
         
-        ${buttonHtml}
+        ${sliderHtml}
 
         <script>
-          async function confirmLead(leadId) {
-            const button = document.getElementById('confirmButton');
-            const message = document.getElementById('message');
-            const buttonContainer = document.getElementById('button-container');
+          let isDragging = false;
+          let startX = 0;
+          let startLeft = 0;
+          let sliderWidth = 0;
+          let trackWidth = 0;
+          let thumbWidth = 0;
+          
+          function initSlider() {
+            const slider = document.getElementById('unlock-slider');
+            if (!slider) return;
             
-            // Блокируем кнопку
-            button.disabled = true;
-            button.textContent = 'Обработка...';
+            const thumb = document.getElementById('slider-thumb');
+            const track = slider.querySelector('.slider-track');
+            
+            sliderWidth = slider.offsetWidth;
+            trackWidth = track.offsetWidth;
+            thumbWidth = thumb.offsetWidth;
+            
+            // События для мыши
+            thumb.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', endDrag);
+            
+            // События для тача
+            thumb.addEventListener('touchstart', handleTouchStart, { passive: false });
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd);
+          }
+          
+          function startDrag(e) {
+            e.preventDefault();
+            isDragging = true;
+            startX = e.clientX;
+            const thumb = document.getElementById('slider-thumb');
+            startLeft = parseInt(getComputedStyle(thumb).left) || 0;
+            document.getElementById('unlock-slider').classList.remove('completed');
+          }
+          
+          function handleTouchStart(e) {
+            e.preventDefault();
+            isDragging = true;
+            startX = e.touches[0].clientX;
+            const thumb = document.getElementById('slider-thumb');
+            startLeft = parseInt(getComputedStyle(thumb).left) || 0;
+            document.getElementById('unlock-slider').classList.remove('completed');
+          }
+          
+          function drag(e) {
+            if (!isDragging) return;
+            updateThumbPosition(e.clientX);
+          }
+          
+          function handleTouchMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            updateThumbPosition(e.touches[0].clientX);
+          }
+          
+          function updateThumbPosition(clientX) {
+            const thumb = document.getElementById('slider-thumb');
+            const fill = document.getElementById('slider-fill');
+            const slider = document.getElementById('unlock-slider');
+            const track = slider.querySelector('.slider-track');
+            
+            const deltaX = clientX - startX;
+            let newLeft = startLeft + deltaX;
+            
+            // Ограничиваем движение ползунка
+            const maxLeft = trackWidth - thumbWidth - 10;
+            newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            
+            thumb.style.left = newLeft + 'px';
+            
+            // Обновляем заполнение
+            const fillWidth = (newLeft / maxLeft) * 100;
+            fill.style.width = fillWidth + '%';
+            
+            // Проверяем, достиг ли ползунок конца
+            if (newLeft >= maxLeft - 5) {
+              thumb.style.left = maxLeft + 'px';
+              fill.style.width = '100%';
+            }
+          }
+          
+          function endDrag(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            const thumb = document.getElementById('slider-thumb');
+            const maxLeft = trackWidth - thumbWidth - 10;
+            const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
+            
+            if (currentLeft >= maxLeft - 5) {
+              // Успешное завершение
+              completeSlider();
+            } else {
+              // Сброс позиции
+              resetSlider();
+            }
+          }
+          
+          function handleTouchEnd(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            const thumb = document.getElementById('slider-thumb');
+            const maxLeft = trackWidth - thumbWidth - 10;
+            const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
+            
+            if (currentLeft >= maxLeft - 5) {
+              // Успешное завершение
+              completeSlider();
+            } else {
+              // Сброс позиции
+              resetSlider();
+            }
+          }
+          
+          function completeSlider() {
+            const slider = document.getElementById('unlock-slider');
+            const thumb = document.getElementById('slider-thumb');
+            const fill = document.getElementById('slider-fill');
+            const success = document.getElementById('slider-success');
+            const message = document.getElementById('message');
+            
+            slider.classList.add('completed');
+            success.style.display = 'flex';
+            success.classList.add('show');
+            
+            // Отправляем запрос на подтверждение
+            confirmLead(${lead.ID});
+          }
+          
+          function resetSlider() {
+            const thumb = document.getElementById('slider-thumb');
+            const fill = document.getElementById('slider-fill');
+            
+            // Плавный сброс
+            thumb.style.transition = 'left 0.3s ease';
+            fill.style.transition = 'width 0.3s ease';
+            
+            thumb.style.left = '5px';
+            fill.style.width = '0%';
+            
+            // Убираем transition после завершения
+            setTimeout(() => {
+              thumb.style.transition = '';
+              fill.style.transition = '';
+            }, 300);
+          }
+          
+          async function confirmLead(leadId) {
+            const message = document.getElementById('message');
             
             try {
               // Отправляем запрос на обновление статуса лида
@@ -323,22 +562,39 @@ app.get('/track', async (req, res) => {
               const result = await response.json();
               
               if (result.success) {
-                // Перезагружаем страницу через 1 секунду, чтобы показать обновленный статус
-                message.innerHTML = '<div class="success-message">✅ Согласована</div>';
+                // Перезагружаем страницу через 1.5 секунды
                 setTimeout(() => {
                   location.reload();
-                }, 1000);
+                }, 1500);
               } else {
-                message.innerHTML = '<div style="color: red;">❌ Ошибка: ' + result.error + '</div>';
-                button.disabled = false;
-                button.textContent = 'Все верно';
+                message.innerHTML = '<div style="color: red; text-align: center; margin-top: 10px;">❌ Ошибка: ' + result.error + '</div>';
+                // Сбрасываем слайдер при ошибке
+                setTimeout(() => {
+                  const slider = document.getElementById('unlock-slider');
+                  const success = document.getElementById('slider-success');
+                  slider.classList.remove('completed');
+                  success.classList.remove('show');
+                  success.style.display = 'none';
+                  resetSlider();
+                }, 2000);
               }
             } catch (error) {
-              message.innerHTML = '<div style="color: red;">❌ Ошибка: ' + error.message + '</div>';
-              button.disabled = false;
-              button.textContent = 'Все верно';
+              message.innerHTML = '<div style="color: red; text-align: center; margin-top: 10px;">❌ Ошибка: ' + error.message + '</div>';
+              // Сбрасываем слайдер при ошибке
+              setTimeout(() => {
+                const slider = document.getElementById('unlock-slider');
+                const success = document.getElementById('slider-success');
+                slider.classList.remove('completed');
+                success.classList.remove('show');
+                success.style.display = 'none';
+                resetSlider();
+              }, 2000);
             }
           }
+          
+          // Инициализация слайдера при загрузке страницы
+          document.addEventListener('DOMContentLoaded', initSlider);
+          window.addEventListener('resize', initSlider);
         </script>
       </body>
       </html>
