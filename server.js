@@ -169,7 +169,34 @@ app.get('/track', async (req, res) => {
             return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
         };
 
-        // 6. Определяем заголовок в зависимости от статуса
+        // 6. Получаем текстовые значения типа оборудования для проверки
+        let equipmentTypeTexts = [];
+        if (lead.UF_CRM_1614544756) {
+            if (Array.isArray(lead.UF_CRM_1614544756)) {
+                equipmentTypeTexts = lead.UF_CRM_1614544756.map(id =>
+                    fieldMappings['UF_CRM_1614544756']?.[id] || ''
+                );
+            } else {
+                equipmentTypeTexts = [fieldMappings['UF_CRM_1614544756']?.[lead.UF_CRM_1614544756] || ''];
+            }
+        }
+
+        // 7. Проверяем, есть ли "Моющий пылесос" в типе оборудования
+        const hasWashingVacuum = equipmentTypeTexts.some(text =>
+            text && text.includes('Моющий пылесос')
+        );
+
+        // 8. Создаем HTML для дополнительного блока
+        let additionalHtml = '';
+        if (hasWashingVacuum) {
+            additionalHtml = `
+                <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border: 1px solid #ffeaa7;">
+                    <strong>Дополнительно:</strong> 2шт. средства (порошок) на запас, потратите оплатите нет, вернете.
+                </div>
+            `;
+        }
+
+        // 9. Определяем заголовок в зависимости от статуса
         let pageTitle = 'Проверьте пожалуйста и подтвердите:';
         if (lead.STATUS_ID === '2') {
             pageTitle = 'Предварительный расчет';
@@ -177,7 +204,7 @@ app.get('/track', async (req, res) => {
             pageTitle = 'Согласовано';
         }
 
-        // 7. Генерируем HTML кнопки (если статус = 8)
+        // 10. Генерируем HTML кнопки (если статус = 8)
         let buttonHtml = '';
         if (lead.STATUS_ID === '8') {
             buttonHtml = `
@@ -188,7 +215,7 @@ app.get('/track', async (req, res) => {
             `;
         }
 
-        // 8. Подготавливаем HTML для типа оборудования (если поле заполнено)
+        // 11. Подготавливаем HTML для типа оборудования (если поле заполнено)
         let equipmentHtml = '';
         if (lead.UF_CRM_1614544756) {
             equipmentHtml = `
@@ -198,7 +225,7 @@ app.get('/track', async (req, res) => {
             `;
         }
 
-        // 9. Отправляем HTML клиенту
+        // 12. Отправляем HTML клиенту
         res.send(`
       <html>
       <head>
@@ -262,7 +289,7 @@ app.get('/track', async (req, res) => {
 
         <hr>
         ${productsHtml}
-        
+        ${additionalHtml}
         ${buttonHtml}
 
         <script>
