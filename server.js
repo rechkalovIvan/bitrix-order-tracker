@@ -155,7 +155,7 @@ app.get('/track', async (req, res) => {
             return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
         };
 
-        // 5. Форматируем тип оборудования и проверяем наличие "Моющий пылесос"
+        // 5. Форматируем тип оборудования
         const formatEquipmentType = (fieldId, fieldName) => {
             if (!fieldId) return '—';
 
@@ -169,26 +169,37 @@ app.get('/track', async (req, res) => {
             return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
         };
 
-        // Проверяем, содержит ли тип оборудования "Моющий пылесос"
-        let hasWashingVacuum = false;
+        // 6. Получаем реальные значения типов оборудования для проверки условия
+        let equipmentTypes = [];
         if (lead.UF_CRM_1614544756) {
-            // Получаем текстовые значения типов оборудования
-            let equipmentValues = [];
             if (Array.isArray(lead.UF_CRM_1614544756)) {
-                equipmentValues = lead.UF_CRM_1614544756.map(id =>
-                    fieldMappings['UF_CRM_1614544756']?.[id] || ''
+                equipmentTypes = lead.UF_CRM_1614544756.map(id =>
+                    fieldMappings['UF_CRM_1614544756']?.[id] || `ID: ${id}`
                 );
             } else {
-                equipmentValues = [fieldMappings['UF_CRM_1614544756']?.[lead.UF_CRM_1614544756] || ''];
+                equipmentTypes = [fieldMappings['UF_CRM_1614544756']?.[lead.UF_CRM_1614544756] || `ID: ${lead.UF_CRM_1614544756}`];
             }
-
-            // Проверяем наличие "Моющий пылесос"
-            hasWashingVacuum = equipmentValues.some(value =>
-                value && value.includes('Моющий пылесос')
-            );
         }
 
-        // 6. Определяем заголовок в зависимости от статуса
+        // 7. Проверяем, есть ли "Моющий пылесос" в типах оборудования
+        const hasWashingVacuum = equipmentTypes.some(type =>
+            type.includes('Моющий пылесос') || type === 'Моющий пылесос'
+        );
+
+        // 8. Генерируем дополнительные блоки при условии
+        let additionalBlocks = '';
+        if (hasWashingVacuum) {
+            additionalBlocks = `
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <strong>Дополнительно:</strong> 2шт. средства (порошок) на запас, потратите оплатите нет, вернете.
+                </div>
+                <div style="background: #ffeb3b; border: 2px solid #f44336; padding: 15px; border-radius: 5px; margin: 20px 0; font-weight: bold;">
+                    ВНИМАНИЕ!!! в комплекте будет щетка для чистки сильнозагрязненных поверхностей. Она ПЛАТНАЯ 150 рублей. Если вы ей воспользуетесь, то оплачиваете и оставляете у себя. Если нет вернете обратно (не нарушая упаковку).
+                </div>
+            `;
+        }
+
+        // 9. Определяем заголовок в зависимости от статуса
         let pageTitle = 'Проверьте пожалуйста и подтвердите:';
         if (lead.STATUS_ID === '2') {
             pageTitle = 'Предварительный расчет';
@@ -196,7 +207,7 @@ app.get('/track', async (req, res) => {
             pageTitle = 'Согласовано';
         }
 
-        // 7. Генерируем HTML кнопки (если статус = 8)
+        // 10. Генерируем HTML кнопки (если статус = 8)
         let buttonHtml = '';
         if (lead.STATUS_ID === '8') {
             buttonHtml = `
@@ -207,7 +218,7 @@ app.get('/track', async (req, res) => {
             `;
         }
 
-        // 8. Подготавливаем HTML для типа оборудования (если поле заполнено)
+        // 11. Подготавливаем HTML для типа оборудования (если поле заполнено)
         let equipmentHtml = '';
         if (lead.UF_CRM_1614544756) {
             equipmentHtml = `
@@ -217,23 +228,7 @@ app.get('/track', async (req, res) => {
             `;
         }
 
-        // 9. Подготавливаем дополнительные блоки
-        let additionalBlocks = `
-            <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border: 1px solid #ffeaa7;">
-                <strong>Дополнительно 2шт. средства (порошок) на запас, потратите оплатите нет, вернете.</strong>
-            </div>
-        `;
-
-        // Добавляем блок с предупреждением, если есть "Моющий пылесос"
-        if (hasWashingVacuum) {
-            additionalBlocks += `
-                <div style="background: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border: 1px solid #f5c6cb; color: #721c24;">
-                    <strong>ВНИМАНИЕ!!!</strong> в комплекте будет щетка для чистки сильнозагрязненных поверхностей. Она <strong>ПЛАТНАЯ 150 рублей</strong>. Если вы ей воспользуетесь, то оплачиваете и оставляете у себя. Если нет вернете обратно (не нарушая упаковку).
-                </div>
-            `;
-        }
-
-        // 10. Отправляем HTML клиенту
+        // 12. Отправляем HTML клиенту
         res.send(`
       <html>
       <head>
