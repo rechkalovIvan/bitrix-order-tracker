@@ -96,16 +96,7 @@ app.get('/track', async (req, res) => {
 
             if (products.length > 0) {
                 let productsTable = `
-                    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-                        <thead>
-                            <tr style="background-color: #f2f2f2;">
-                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Название</th>
-                                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Цена</th>
-                                <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Кол-во</th>
-                                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Сумма</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                    <div class="products-grid">
                 `;
 
                 let total = 0;
@@ -116,29 +107,30 @@ app.get('/track', async (req, res) => {
                     total += sum;
 
                     productsTable += `
-                        <tr>
-                            <td style="border: 1px solid #ddd; padding: 8px;">${product.PRODUCT_NAME || 'Без названия'}</td>
-                            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${price.toFixed(2)} ₽</td>
-                            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${quantity}</td>
-                            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${sum.toFixed(2)} ₽</td>
-                        </tr>
+                        <div class="product-card">
+                            <div class="product-name">${product.PRODUCT_NAME || 'Без названия'}</div>
+                            <div class="product-details">
+                                <span class="product-price">${price.toFixed(2)} ₽</span>
+                                <span class="product-quantity">× ${quantity}</span>
+                            </div>
+                            <div class="product-total">${sum.toFixed(2)} ₽</div>
+                        </div>
                     `;
                 });
 
                 productsTable += `
-                        <tr style="font-weight: bold;">
-                            <td colspan="3" style="border: 1px solid #ddd; padding: 8px; text-align: right;">Итого:</td>
-                            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${total.toFixed(2)} ₽</td>
-                        </tr>
-                        </tbody>
-                    </table>
+                        <div class="products-total">
+                            <div class="total-label">Итого:</div>
+                            <div class="total-amount">${total.toFixed(2)} ₽</div>
+                        </div>
+                    </div>
                 `;
 
                 productsHtml = `<h3>Товары:</h3>${productsTable}`;
             }
         } catch (productErr) {
             console.error('Ошибка при получении товаров:', productErr);
-            productsHtml = '<h3>Товары:</h3><p style="color: red;">Ошибка загрузки товаров</p>';
+            productsHtml = '<h3>Товары:</h3><p class="error-text">Ошибка загрузки товаров</p>';
         }
 
         // 4. Форматируем значения времени
@@ -190,39 +182,62 @@ app.get('/track', async (req, res) => {
         let additionalBlocks = '';
         if (hasWashingVacuum) {
             additionalBlocks = `
-                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                    <strong>Дополнительно:</strong> 2шт. средства (порошок) на запас, потратите оплатите нет, вернете.
+                <div class="info-card warning">
+                    <div class="info-icon">⚠️</div>
+                    <div class="info-content">
+                        <div class="info-title">Дополнительно</div>
+                        <div class="info-text">2шт. средства (порошок) на запас, потратите оплатите нет, вернете.</div>
+                    </div>
                 </div>
-                <div style="background: #ffeb3b; border: 2px solid #f44336; padding: 15px; border-radius: 5px; margin: 20px 0; font-weight: bold;">
-                    ВНИМАНИЕ!!! в комплекте будет щетка для чистки сильнозагрязненных поверхностей. Она ПЛАТНАЯ 150 рублей. Если вы ей воспользуетесь, то оплачиваете и оставляете у себя. Если нет вернете обратно (не нарушая упаковку).
+                <div class="info-card alert">
+                    <div class="info-icon">❗</div>
+                    <div class="info-content">
+                        <div class="info-title">ВНИМАНИЕ!!!</div>
+                        <div class="info-text">в комплекте будет щетка для чистки сильнозагрязненных поверхностей. Она ПЛАТНАЯ 150 рублей. Если вы ей воспользуетесь, то оплачиваете и оставляете у себя. Если нет вернете обратно (не нарушая упаковку).</div>
+                    </div>
                 </div>
             `;
         }
 
-        // 9. Определяем заголовок в зависимости от статуса
-        let pageTitle = 'Проверьте пожалуйста и подтвердите:';
+        // 9. Определяем заголовок и статус в зависимости от статуса
+        let pageTitle = 'Проверьте и подтвердите';
+        let statusText = 'Ожидает подтверждения';
+        let statusColor = '#ff9800';
+
         if (lead.STATUS_ID === '2') {
             pageTitle = 'Предварительный расчет';
+            statusText = 'Черновик';
+            statusColor = '#2196f3';
         } else if (lead.STATUS_ID === '7') {
             pageTitle = 'Согласовано';
+            statusText = 'Подтверждено';
+            statusColor = '#4caf50';
         }
 
         // 10. Генерируем HTML слайдера (если статус = 8)
         let sliderHtml = '';
         if (lead.STATUS_ID === '8') {
             sliderHtml = `
-                <div id="slider-container" style="margin: 30px 0; padding: 20px;">
-                    <div id="unlock-slider" class="unlock-slider">
-                        <div class="slider-text">Сдвиньте для подтверждения</div>
-                        <div class="slider-track">
-                            <div class="slider-thumb" id="slider-thumb">
-                                <div class="thumb-icon">→</div>
+                <div class="slider-section">
+                    <div class="slider-container">
+                        <div id="unlock-slider" class="unlock-slider">
+                            <div class="slider-track">
+                                <div class="slider-fill" id="slider-fill"></div>
+                                <div class="slider-text">Сдвиньте для подтверждения</div>
+                                <div class="slider-thumb" id="slider-thumb">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
                             </div>
-                            <div class="slider-fill" id="slider-fill"></div>
-                        </div>
-                        <div class="slider-success" id="slider-success" style="display: none;">
-                            <div class="success-icon">✓</div>
-                            <div class="success-text">Подтверждено!</div>
+                            <div class="slider-success" id="slider-success">
+                                <div class="success-content">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M20 6L9 17L4 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    <span>Подтверждено!</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div id="message"></div>
@@ -234,8 +249,9 @@ app.get('/track', async (req, res) => {
         let equipmentHtml = '';
         if (lead.UF_CRM_1614544756) {
             equipmentHtml = `
-                <div class="date-item">
-                    <strong>Тип оборудования:</strong> ${formatEquipmentType(lead.UF_CRM_1614544756, 'UF_CRM_1614544756')}
+                <div class="info-item">
+                    <div class="info-label">Тип оборудования</div>
+                    <div class="info-value">${formatEquipmentType(lead.UF_CRM_1614544756, 'UF_CRM_1614544756')}</div>
                 </div>
             `;
         }
@@ -245,40 +261,217 @@ app.get('/track', async (req, res) => {
       <html>
       <head>
         <title>Ваш лид</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <style>
-          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-          h2 { color: #2c3e50; }
-          p { font-size: 16px; }
-          strong { color: #16a085; }
-          hr { border: 1px solid #eee; }
-          .dates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
-          .date-item { background: #f8f9fa; padding: 10px; border-radius: 4px; }
-          .status { background: #e8f4f8; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+          }
           
-          /* Слайдер разблокировки */
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+          }
+          
+          .container {
+            max-width: 500px;
+            margin: 0 auto;
+          }
+          
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+          }
+          
+          .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+          }
+          
+          .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          
+          .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+          }
+          
+          .info-grid {
+            display: grid;
+            gap: 16px;
+          }
+          
+          .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+          }
+          
+          .info-label {
+            font-weight: 500;
+            color: #666;
+            font-size: 0.9rem;
+          }
+          
+          .info-value {
+            text-align: right;
+            font-weight: 500;
+            color: #333;
+            font-size: 0.9rem;
+          }
+          
+          h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #333;
+          }
+          
+          .products-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+          }
+          
+          .product-card {
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+          }
+          
+          .product-name {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+          }
+          
+          .product-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+          }
+          
+          .product-price {
+            color: #666;
+          }
+          
+          .product-quantity {
+            color: #888;
+          }
+          
+          .product-total {
+            font-weight: 600;
+            color: #333;
+            text-align: right;
+            font-size: 1rem;
+          }
+          
+          .products-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0 8px;
+            border-top: 2px solid #e9ecef;
+            font-weight: 600;
+          }
+          
+          .total-label {
+            font-size: 1.125rem;
+            color: #333;
+          }
+          
+          .total-amount {
+            font-size: 1.25rem;
+            color: #4caf50;
+          }
+          
+          .info-card {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            align-items: flex-start;
+          }
+          
+          .info-card.warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+          }
+          
+          .info-card.alert {
+            background: #ffebee;
+            border: 1px solid #ffcdd2;
+          }
+          
+          .info-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+          }
+          
+          .info-content {
+            flex: 1;
+          }
+          
+          .info-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+          }
+          
+          .info-text {
+            font-size: 0.875rem;
+            line-height: 1.4;
+            color: #333;
+          }
+          
+          .slider-section {
+            margin: 30px 0;
+          }
+          
+          .slider-container {
+            padding: 0 20px;
+          }
+          
           .unlock-slider {
             position: relative;
             width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
+            height: 60px;
             user-select: none;
-          }
-          
-          .slider-text {
-            text-align: center;
-            margin-bottom: 15px;
-            color: #666;
-            font-size: 14px;
           }
           
           .slider-track {
             position: relative;
-            height: 50px;
+            width: 100%;
+            height: 100%;
             background: #e0e0e0;
-            border-radius: 25px;
+            border-radius: 30px;
             overflow: hidden;
             cursor: pointer;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
           }
           
           .slider-fill {
@@ -287,37 +480,46 @@ app.get('/track', async (req, res) => {
             left: 0;
             height: 100%;
             width: 0;
-            background: #4CAF50;
-            border-radius: 25px;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            border-radius: 30px;
             transition: width 0.1s ease;
+          }
+          
+          .slider-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #666;
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 2;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
           }
           
           .slider-thumb {
             position: absolute;
             top: 5px;
             left: 5px;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             background: white;
             border-radius: 50%;
             cursor: grab;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             transition: all 0.2s ease;
-            z-index: 2;
+            z-index: 3;
+            color: #666;
           }
           
           .slider-thumb:active {
             cursor: grabbing;
-            transform: scale(1.1);
-          }
-          
-          .thumb-icon {
-            font-size: 18px;
-            color: #666;
-            font-weight: bold;
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
           }
           
           .slider-success {
@@ -326,70 +528,110 @@ app.get('/track', async (req, res) => {
             left: 0;
             width: 100%;
             height: 100%;
-            background: #4CAF50;
-            border-radius: 25px;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            border-radius: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
-            color: white;
             opacity: 0;
             transition: opacity 0.3s ease;
+            z-index: 1;
           }
           
-          .success-icon {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
+          .success-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
           }
           
-          .success-text {
-            font-size: 16px;
-            font-weight: bold;
+          .unlock-slider.completed .slider-text {
+            opacity: 0;
           }
           
-          .slider-success.show {
+          .unlock-slider.completed .slider-success {
             opacity: 1;
           }
           
-          .unlock-slider.completed .slider-track {
-            background: #4CAF50;
+          .error-text {
+            color: #f44336;
+            text-align: center;
+            padding: 20px;
           }
           
-          .unlock-slider.completed .slider-thumb {
-            display: none;
+          @media (max-width: 480px) {
+            body {
+              padding: 16px;
+            }
+            
+            .card {
+              padding: 20px;
+            }
+            
+            .header h1 {
+              font-size: 1.3rem;
+            }
+            
+            .product-card {
+              padding: 12px;
+            }
+            
+            .info-card {
+              padding: 12px;
+            }
           }
         </style>
       </head>
       <body>
-        <h2>${pageTitle}</h2>
-        
-        <div class="status">
-            <strong>Статус:</strong> ${lead.STATUS_ID}
+        <div class="container">
+          <div class="header">
+            <h1>${pageTitle}</h1>
+            <div class="status-badge" style="background: ${statusColor}20; color: ${statusColor}; border: 1px solid ${statusColor}40;">
+              ${statusText}
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-label">Статус</div>
+                <div class="info-value">${lead.STATUS_ID}</div>
+              </div>
+              
+              <div class="info-item">
+                <div class="info-label">Дата начала</div>
+                <div class="info-value">${formatDate(lead.UF_CRM_BEGINDATE)}</div>
+              </div>
+              
+              <div class="info-item">
+                <div class="info-label">Время начала</div>
+                <div class="info-value">${formatTimeList(lead.UF_CRM_1638818267, 'UF_CRM_1638818267')}</div>
+              </div>
+              
+              <div class="info-item">
+                <div class="info-label">Дата завершения</div>
+                <div class="info-value">${formatDate(lead.UF_CRM_5FB96D2488307)}</div>
+              </div>
+              
+              <div class="info-item">
+                <div class="info-label">Время завершения</div>
+                <div class="info-value">${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}</div>
+              </div>
+              
+              ${equipmentHtml}
+            </div>
+          </div>
+          
+          <div class="card">
+            ${productsHtml}
+          </div>
+          
+          ${additionalBlocks}
+          
+          ${sliderHtml}
         </div>
-        
-        <div class="dates-grid">
-            <div class="date-item">
-                <strong>Дата начала:</strong> ${formatDate(lead.UF_CRM_BEGINDATE)}
-            </div>
-            <div class="date-item">
-                <strong>Время начала:</strong> ${formatTimeList(lead.UF_CRM_1638818267, 'UF_CRM_1638818267')}
-            </div>
-            <div class="date-item">
-                <strong>Дата завершения:</strong> ${formatDate(lead.UF_CRM_5FB96D2488307)}
-            </div>
-            <div class="date-item">
-                <strong>Время завершения:</strong> ${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}
-            </div>
-            ${equipmentHtml}
-        </div>
-
-        <hr>
-        ${productsHtml}
-        
-        ${additionalBlocks}
-        
-        ${sliderHtml}
 
         <script>
           let isDragging = false;
@@ -518,8 +760,6 @@ app.get('/track', async (req, res) => {
             const message = document.getElementById('message');
             
             slider.classList.add('completed');
-            success.style.display = 'flex';
-            success.classList.add('show');
             
             // Отправляем запрос на подтверждение
             confirmLead(${lead.ID});
@@ -530,7 +770,7 @@ app.get('/track', async (req, res) => {
             const fill = document.getElementById('slider-fill');
             
             // Плавный сброс
-            thumb.style.transition = 'left 0.3s ease';
+            thumb.style.transition = 'left 0.3s ease, transform 0.2s ease';
             fill.style.transition = 'width 0.3s ease';
             
             thumb.style.left = '5px';
@@ -567,26 +807,20 @@ app.get('/track', async (req, res) => {
                   location.reload();
                 }, 1500);
               } else {
-                message.innerHTML = '<div style="color: red; text-align: center; margin-top: 10px;">❌ Ошибка: ' + result.error + '</div>';
+                message.innerHTML = '<div style="color: #f44336; text-align: center; margin-top: 16px; padding: 12px; background: #ffebee; border-radius: 8px; font-size: 0.875rem;">❌ Ошибка: ' + result.error + '</div>';
                 // Сбрасываем слайдер при ошибке
                 setTimeout(() => {
                   const slider = document.getElementById('unlock-slider');
-                  const success = document.getElementById('slider-success');
                   slider.classList.remove('completed');
-                  success.classList.remove('show');
-                  success.style.display = 'none';
                   resetSlider();
                 }, 2000);
               }
             } catch (error) {
-              message.innerHTML = '<div style="color: red; text-align: center; margin-top: 10px;">❌ Ошибка: ' + error.message + '</div>';
+              message.innerHTML = '<div style="color: #f44336; text-align: center; margin-top: 16px; padding: 12px; background: #ffebee; border-radius: 8px; font-size: 0.875rem;">❌ Ошибка: ' + error.message + '</div>';
               // Сбрасываем слайдер при ошибке
               setTimeout(() => {
                 const slider = document.getElementById('unlock-slider');
-                const success = document.getElementById('slider-success');
                 slider.classList.remove('completed');
-                success.classList.remove('show');
-                success.style.display = 'none';
                 resetSlider();
               }, 2000);
             }
