@@ -75,7 +75,7 @@ app.get('/track', async (req, res) => {
           field.LIST.forEach(item => {
             mapping[item.ID] = item.VALUE;
           });
-          fieldMappings[fieldName] = mapping;
+          fieldMappings[field.FIELD_NAME] = mapping;
         }
       });
     } catch (err) {
@@ -483,10 +483,10 @@ app.get('/track', async (req, res) => {
           
           .slider-thumb {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 60px;
-            height: 60px;
+            top: 5px;
+            left: 5px;
+            width: 50px;
+            height: 50px;
             background: white;
             border-radius: 50%;
             cursor: grab;
@@ -497,7 +497,6 @@ app.get('/track', async (req, res) => {
             transition: all 0.2s ease;
             z-index: 3;
             color: #666;
-            margin: 0;
           }
           
           .slider-thumb:active {
@@ -577,6 +576,11 @@ app.get('/track', async (req, res) => {
           <div class="card">
             <div class="info-grid">
               <div class="info-item">
+                <div class="info-label">Статус</div>
+                <div class="info-value">${lead.STATUS_ID}</div>
+              </div>
+              
+              <div class="info-item">
                 <div class="info-label">Дата начала</div>
                 <div class="info-value">${formatDate(lead.UF_CRM_BEGINDATE)}</div>
               </div>
@@ -595,6 +599,8 @@ app.get('/track', async (req, res) => {
                 <div class="info-label">Время завершения</div>
                 <div class="info-value">${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}</div>
               </div>
+              
+              ${equipmentHtml}
             </div>
           </div>
           
@@ -676,7 +682,7 @@ app.get('/track', async (req, res) => {
             let newLeft = startLeft + deltaX;
             
             // Ограничиваем движение ползунка
-            const maxLeft = trackWidth - thumbWidth;
+            const maxLeft = trackWidth - thumbWidth - 10;
             newLeft = Math.max(0, Math.min(newLeft, maxLeft));
             
             thumb.style.left = newLeft + 'px';
@@ -697,7 +703,7 @@ app.get('/track', async (req, res) => {
             isDragging = false;
             
             const thumb = document.getElementById('slider-thumb');
-            const maxLeft = trackWidth - thumbWidth;
+            const maxLeft = trackWidth - thumbWidth - 10;
             const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
             
             if (currentLeft >= maxLeft - 5) {
@@ -714,7 +720,7 @@ app.get('/track', async (req, res) => {
             isDragging = false;
             
             const thumb = document.getElementById('slider-thumb');
-            const maxLeft = trackWidth - thumbWidth;
+            const maxLeft = trackWidth - thumbWidth - 10;
             const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
             
             if (currentLeft >= maxLeft - 5) {
@@ -747,7 +753,7 @@ app.get('/track', async (req, res) => {
             thumb.style.transition = 'left 0.3s ease, transform 0.2s ease';
             fill.style.transition = 'width 0.3s ease';
             
-            thumb.style.left = '0px';
+            thumb.style.left = '5px';
             fill.style.width = '0%';
             
             // Убираем transition после завершения
