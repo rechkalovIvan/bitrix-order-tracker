@@ -4,109 +4,109 @@ const PORT = process.env.PORT || 10000;
 
 let fetch;
 (async () => {
-    try {
-        fetch = (await import('node-fetch')).default;
-    } catch (err) {
-        console.error('Ошибка загрузки node-fetch:', err);
-    }
+  try {
+    fetch = (await import('node-fetch')).default;
+  } catch (err) {
+    console.error('Ошибка загрузки node-fetch:', err);
+  }
 })();
 
 const BITRIX_WEBHOOK_URL = process.env.BITRIX_WEBHOOK_URL;
 
 app.get('/', (req, res) => {
-    res.send(`
+  res.send(`
     <h1>Отслеживание лида</h1>
     <p>Пример ссылки: <a href="/track?key=a7x9k2m5">/track?key=a7x9k2m5</a></p>
   `);
 });
 
 app.get('/track', async (req, res) => {
-    const { key } = req.query;
+  const { key } = req.query;
 
-    if (!key) {
-        return res.status(400).send('Не указан ключ доступа.');
+  if (!key) {
+    return res.status(400).send('Не указан ключ доступа.');
+  }
+
+  if (!fetch) {
+    return res.status(500).send('Сервер не загрузил необходимые модули.');
+  }
+
+  try {
+    // 1. Поиск лида по ключу
+    const leadResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.list', {
+      method: 'POST',
+      body: JSON.stringify({
+        filter: { UF_CRM_1754490207019: key },
+        select: [
+          'ID', 'TITLE', 'OPPORTUNITY', 'STATUS_ID', 'DATE_CREATE',
+          'UF_CRM_BEGINDATE',           // Дата начала
+          'UF_CRM_1638818267',          // Время начала (ID из списка)
+          'UF_CRM_5FB96D2488307',       // Дата завершения
+          'UF_CRM_1638818801',          // Время завершения (ID из списка)
+          'UF_CRM_1614544756'           // Тип оборудования (ID из списка, может быть множественным)
+        ]
+      }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const leadData = await leadResponse.json();
+    if (!leadData.result || leadData.result.length === 0) {
+      return res.status(404).send('Лид не найден или ключ неверный.');
     }
 
-    if (!fetch) {
-        return res.status(500).send('Сервер не загрузил необходимые модули.');
-    }
+    const lead = leadData.result[0];
 
+    // 2. Получаем все пользовательские поля лидов для списков
+    let fieldMappings = {};
     try {
-        // 1. Поиск лида по ключу
-        const leadResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.list', {
-            method: 'POST',
-            body: JSON.stringify({
-                filter: { UF_CRM_1754490207019: key },
-                select: [
-                    'ID', 'TITLE', 'OPPORTUNITY', 'STATUS_ID', 'DATE_CREATE',
-                    'UF_CRM_BEGINDATE',           // Дата начала
-                    'UF_CRM_1638818267',          // Время начала (ID из списка)
-                    'UF_CRM_5FB96D2488307',       // Дата завершения
-                    'UF_CRM_1638818801',          // Время завершения (ID из списка)
-                    'UF_CRM_1614544756'           // Тип оборудования (ID из списка, может быть множественным)
-                ]
-            }),
-            headers: { 'Content-Type': 'application/json' }
-        });
+      const userFieldsResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.userfield.list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-        const leadData = await leadResponse.json();
-        if (!leadData.result || leadData.result.length === 0) {
-            return res.status(404).send('Лид не найден или ключ неверный.');
+      const userFieldsData = await userFieldsResponse.json();
+      const userFields = userFieldsData.result || [];
+
+      // Обрабатываем нужные поля
+      const timeFields = ['UF_CRM_1638818267', 'UF_CRM_1638818801', 'UF_CRM_1614544756'];
+      userFields.forEach(field => {
+        if (timeFields.includes(field.FIELD_NAME) && field.LIST) {
+          const mapping = {};
+          field.LIST.forEach(item => {
+            mapping[item.ID] = item.VALUE;
+          });
+          fieldMappings[field.FIELD_NAME] = mapping;
         }
+      });
+    } catch (err) {
+      console.error('Ошибка при получении пользовательских полей:', err);
+    }
 
-        const lead = leadData.result[0];
+    // 3. Получаем товары лида
+    let productsHtml = '<h3>Товары:</h3><p>Нет товаров</p>';
+    try {
+      const productsResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.productrows.get', {
+        method: 'POST',
+        body: JSON.stringify({ id: lead.ID }),
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-        // 2. Получаем все пользовательские поля лидов для списков
-        let fieldMappings = {};
-        try {
-            const userFieldsResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.userfield.list', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
+      const productsData = await productsResponse.json();
+      const products = productsData.result || [];
 
-            const userFieldsData = await userFieldsResponse.json();
-            const userFields = userFieldsData.result || [];
-
-            // Обрабатываем нужные поля
-            const timeFields = ['UF_CRM_1638818267', 'UF_CRM_1638818801', 'UF_CRM_1614544756'];
-            userFields.forEach(field => {
-                if (timeFields.includes(field.FIELD_NAME) && field.LIST) {
-                    const mapping = {};
-                    field.LIST.forEach(item => {
-                        mapping[item.ID] = item.VALUE;
-                    });
-                    fieldMappings[field.FIELD_NAME] = mapping;
-                }
-            });
-        } catch (err) {
-            console.error('Ошибка при получении пользовательских полей:', err);
-        }
-
-        // 3. Получаем товары лида
-        let productsHtml = '<h3>Товары:</h3><p>Нет товаров</p>';
-        try {
-            const productsResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.productrows.get', {
-                method: 'POST',
-                body: JSON.stringify({ id: lead.ID }),
-                headers: { 'Content-Type': 'application/json' }
-            });
-
-            const productsData = await productsResponse.json();
-            const products = productsData.result || [];
-
-            if (products.length > 0) {
-                let productsTable = `
+      if (products.length > 0) {
+        let productsTable = `
                     <div class="products-grid">
                 `;
 
-                let total = 0;
-                products.forEach(product => {
-                    const price = parseFloat(product.PRICE || 0);
-                    const quantity = parseFloat(product.QUANTITY || 0);
-                    const sum = price * quantity;
-                    total += sum;
+        let total = 0;
+        products.forEach(product => {
+          const price = parseFloat(product.PRICE || 0);
+          const quantity = parseFloat(product.QUANTITY || 0);
+          const sum = price * quantity;
+          total += sum;
 
-                    productsTable += `
+          productsTable += `
                         <div class="product-card">
                             <div class="product-name">${product.PRODUCT_NAME || 'Без названия'}</div>
                             <div class="product-details">
@@ -116,9 +116,9 @@ app.get('/track', async (req, res) => {
                             <div class="product-total">${sum.toFixed(2)} ₽</div>
                         </div>
                     `;
-                });
+        });
 
-                productsTable += `
+        productsTable += `
                         <div class="products-total">
                             <div class="total-label">Итого:</div>
                             <div class="total-amount">${total.toFixed(2)} ₽</div>
@@ -126,62 +126,62 @@ app.get('/track', async (req, res) => {
                     </div>
                 `;
 
-                productsHtml = `<h3>Товары:</h3>${productsTable}`;
-            }
-        } catch (productErr) {
-            console.error('Ошибка при получении товаров:', productErr);
-            productsHtml = '<h3>Товары:</h3><p class="error-text">Ошибка загрузки товаров</p>';
-        }
+        productsHtml = `<h3>Товары:</h3>${productsTable}`;
+      }
+    } catch (productErr) {
+      console.error('Ошибка при получении товаров:', productErr);
+      productsHtml = '<h3>Товары:</h3><p class="error-text">Ошибка загрузки товаров</p>';
+    }
 
-        // 4. Форматируем значения времени
-        const formatTimeList = (fieldId, fieldName) => {
-            if (!fieldId) return '—';
+    // 4. Форматируем значения времени
+    const formatTimeList = (fieldId, fieldName) => {
+      if (!fieldId) return '—';
 
-            // Обработка множественных значений
-            if (Array.isArray(fieldId)) {
-                return fieldId.map(id =>
-                    fieldMappings[fieldName]?.[id] || `ID: ${id}`
-                ).join(', ');
-            }
+      // Обработка множественных значений
+      if (Array.isArray(fieldId)) {
+        return fieldId.map(id =>
+          fieldMappings[fieldName]?.[id] || `ID: ${id}`
+        ).join(', ');
+      }
 
-            return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
-        };
+      return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
+    };
 
-        // 5. Форматируем тип оборудования
-        const formatEquipmentType = (fieldId, fieldName) => {
-            if (!fieldId) return '—';
+    // 5. Форматируем тип оборудования
+    const formatEquipmentType = (fieldId, fieldName) => {
+      if (!fieldId) return '—';
 
-            // Обработка множественных значений
-            if (Array.isArray(fieldId)) {
-                return fieldId.map(id =>
-                    fieldMappings[fieldName]?.[id] || `ID: ${id}`
-                ).join(', ');
-            }
+      // Обработка множественных значений
+      if (Array.isArray(fieldId)) {
+        return fieldId.map(id =>
+          fieldMappings[fieldName]?.[id] || `ID: ${id}`
+        ).join(', ');
+      }
 
-            return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
-        };
+      return fieldMappings[fieldName]?.[fieldId] || `ID: ${fieldId}`;
+    };
 
-        // 6. Получаем реальные значения типов оборудования для проверки условия
-        let equipmentTypes = [];
-        if (lead.UF_CRM_1614544756) {
-            if (Array.isArray(lead.UF_CRM_1614544756)) {
-                equipmentTypes = lead.UF_CRM_1614544756.map(id =>
-                    fieldMappings['UF_CRM_1614544756']?.[id] || `ID: ${id}`
-                );
-            } else {
-                equipmentTypes = [fieldMappings['UF_CRM_1614544756']?.[lead.UF_CRM_1614544756] || `ID: ${lead.UF_CRM_1614544756}`];
-            }
-        }
-
-        // 7. Проверяем, есть ли "Моющий пылесос" в типах оборудования
-        const hasWashingVacuum = equipmentTypes.some(type =>
-            type.includes('Моющий пылесос') || type === 'Моющий пылесос'
+    // 6. Получаем реальные значения типов оборудования для проверки условия
+    let equipmentTypes = [];
+    if (lead.UF_CRM_1614544756) {
+      if (Array.isArray(lead.UF_CRM_1614544756)) {
+        equipmentTypes = lead.UF_CRM_1614544756.map(id =>
+          fieldMappings['UF_CRM_1614544756']?.[id] || `ID: ${id}`
         );
+      } else {
+        equipmentTypes = [fieldMappings['UF_CRM_1614544756']?.[lead.UF_CRM_1614544756] || `ID: ${lead.UF_CRM_1614544756}`];
+      }
+    }
 
-        // 8. Генерируем дополнительные блоки при условии
-        let additionalBlocks = '';
-        if (hasWashingVacuum) {
-            additionalBlocks = `
+    // 7. Проверяем, есть ли "Моющий пылесос" в типах оборудования
+    const hasWashingVacuum = equipmentTypes.some(type =>
+      type.includes('Моющий пылесос') || type === 'Моющий пылесос'
+    );
+
+    // 8. Генерируем дополнительные блоки при условии
+    let additionalBlocks = '';
+    if (hasWashingVacuum) {
+      additionalBlocks = `
                 <div class="info-card warning">
                     <div class="info-icon">⚠️</div>
                     <div class="info-content">
@@ -197,27 +197,20 @@ app.get('/track', async (req, res) => {
                     </div>
                 </div>
             `;
-        }
+    }
 
-        // 9. Определяем заголовок и статус в зависимости от статуса
-        let pageTitle = 'Проверьте и подтвердите';
-        let statusText = 'Ожидает подтверждения';
-        let statusColor = '#ff9800';
+    // 9. Определяем заголовок в зависимости от статуса
+    let pageTitle = 'Проверьте и подтвердите';
+    if (lead.STATUS_ID === '2') {
+      pageTitle = 'Предварительный расчет';
+    } else if (lead.STATUS_ID === '7') {
+      pageTitle = 'Согласовано';
+    }
 
-        if (lead.STATUS_ID === '2') {
-            pageTitle = 'Предварительный расчет';
-            statusText = 'Черновик';
-            statusColor = '#2196f3';
-        } else if (lead.STATUS_ID === '7') {
-            pageTitle = 'Согласовано';
-            statusText = 'Подтверждено';
-            statusColor = '#4caf50';
-        }
-
-        // 10. Генерируем HTML слайдера (если статус = 8)
-        let sliderHtml = '';
-        if (lead.STATUS_ID === '8') {
-            sliderHtml = `
+    // 10. Генерируем HTML слайдера (если статус = 8)
+    let sliderHtml = '';
+    if (lead.STATUS_ID === '8') {
+      sliderHtml = `
                 <div class="slider-section">
                     <div class="slider-container">
                         <div id="unlock-slider" class="unlock-slider">
@@ -243,21 +236,21 @@ app.get('/track', async (req, res) => {
                     <div id="message"></div>
                 </div>
             `;
-        }
+    }
 
-        // 11. Подготавливаем HTML для типа оборудования (если поле заполнено)
-        let equipmentHtml = '';
-        if (lead.UF_CRM_1614544756) {
-            equipmentHtml = `
+    // 11. Подготавливаем HTML для типа оборудования (если поле заполнено)
+    let equipmentHtml = '';
+    if (lead.UF_CRM_1614544756) {
+      equipmentHtml = `
                 <div class="info-item">
                     <div class="info-label">Тип оборудования</div>
                     <div class="info-value">${formatEquipmentType(lead.UF_CRM_1614544756, 'UF_CRM_1614544756')}</div>
                 </div>
             `;
-        }
+    }
 
-        // 12. Отправляем HTML клиенту
-        res.send(`
+    // 12. Отправляем HTML клиенту
+    res.send(`
       <html>
       <head>
         <title>Ваш лид</title>
@@ -291,20 +284,10 @@ app.get('/track', async (req, res) => {
           }
           
           .header h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
+            font-size: 2rem;
+            font-weight: 700;
             margin-bottom: 8px;
-          }
-          
-          .status-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            background: white;
-            color: #333;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           
           .card {
@@ -571,7 +554,7 @@ app.get('/track', async (req, res) => {
             }
             
             .header h1 {
-              font-size: 1.3rem;
+              font-size: 1.75rem;
             }
             
             .product-card {
@@ -588,9 +571,6 @@ app.get('/track', async (req, res) => {
         <div class="container">
           <div class="header">
             <h1>${pageTitle}</h1>
-            <div class="status-badge" style="background: ${statusColor}20; color: ${statusColor}; border: 1px solid ${statusColor}40;">
-              ${statusText}
-            </div>
           </div>
           
           <div class="card">
@@ -834,81 +814,81 @@ app.get('/track', async (req, res) => {
       </html>
     `);
 
-    } catch (err) {
-        console.error('Ошибка при обработке запроса:', err);
-        res.status(500).send('Ошибка сервера. Попробуйте позже.');
-    }
+  } catch (err) {
+    console.error('Ошибка при обработке запроса:', err);
+    res.status(500).send('Ошибка сервера. Попробуйте позже.');
+  }
 });
 
 // Обработчик подтверждения лида
 app.post('/confirm-lead', express.json(), async (req, res) => {
-    const { leadId, key } = req.body;
+  const { leadId, key } = req.body;
 
-    if (!leadId || !key) {
-        return res.json({ success: false, error: 'Некорректные данные' });
+  if (!leadId || !key) {
+    return res.json({ success: false, error: 'Некорректные данные' });
+  }
+
+  if (!fetch) {
+    return res.json({ success: false, error: 'Сервер не загрузил необходимые модули' });
+  }
+
+  try {
+    // Проверяем, что лид принадлежит этому ключу и имеет статус 8
+    const leadResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.list', {
+      method: 'POST',
+      body: JSON.stringify({
+        filter: {
+          ID: leadId,
+          UF_CRM_1754490207019: key,
+          STATUS_ID: '8'
+        },
+        select: ['ID']
+      }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const leadData = await leadResponse.json();
+    if (!leadData.result || leadData.result.length === 0) {
+      return res.json({ success: false, error: 'Лид не найден, ключ неверный или статус не 8' });
     }
 
-    if (!fetch) {
-        return res.json({ success: false, error: 'Сервер не загрузил необходимые модули' });
-    }
-
-    try {
-        // Проверяем, что лид принадлежит этому ключу и имеет статус 8
-        const leadResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.list', {
-            method: 'POST',
-            body: JSON.stringify({
-                filter: {
-                    ID: leadId,
-                    UF_CRM_1754490207019: key,
-                    STATUS_ID: '8'
-                },
-                select: ['ID']
-            }),
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        const leadData = await leadResponse.json();
-        if (!leadData.result || leadData.result.length === 0) {
-            return res.json({ success: false, error: 'Лид не найден, ключ неверный или статус не 8' });
+    // Обновляем статус лида на ID 7
+    const updateResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.update', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: leadId,
+        fields: {
+          STATUS_ID: '7'
         }
+      }),
+      headers: { 'Content-Type': 'application/json' }
+    });
 
-        // Обновляем статус лида на ID 7
-        const updateResponse = await fetch(BITRIX_WEBHOOK_URL + 'crm.lead.update', {
-            method: 'POST',
-            body: JSON.stringify({
-                id: leadId,
-                fields: {
-                    STATUS_ID: '7'
-                }
-            }),
-            headers: { 'Content-Type': 'application/json' }
-        });
+    const updateData = await updateResponse.json();
 
-        const updateData = await updateResponse.json();
-
-        if (updateData.result) {
-            res.json({ success: true });
-        } else {
-            res.json({ success: false, error: 'Не удалось обновить статус лида' });
-        }
-
-    } catch (err) {
-        console.error('Ошибка при подтверждении лида:', err);
-        res.json({ success: false, error: 'Ошибка сервера' });
+    if (updateData.result) {
+      res.json({ success: true });
+    } else {
+      res.json({ success: false, error: 'Не удалось обновить статус лида' });
     }
+
+  } catch (err) {
+    console.error('Ошибка при подтверждении лида:', err);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
 });
 
 // Вспомогательные функции
 function formatDate(dateStr) {
-    if (!dateStr) return '—';
-    try {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('ru-RU');
-    } catch {
-        return dateStr;
-    }
+  if (!dateStr) return '—';
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ru-RU');
+  } catch {
+    return dateStr;
+  }
 }
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
+  console.log(`Сервер запущен на порту ${PORT}`);
 });
