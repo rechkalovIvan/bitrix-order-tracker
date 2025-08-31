@@ -201,7 +201,9 @@ app.get('/track', async (req, res) => {
 
     // 9. Определяем заголовок в зависимости от статуса
     let pageTitle = 'Проверьте и подтвердите';
-    if (lead.STATUS_ID === '2') {
+    if (lead.STATUS_ID === '1') {
+      pageTitle = 'Отправлена форма';
+    } else if (lead.STATUS_ID === '2') {
       pageTitle = 'Предварительный расчет';
     } else if (lead.STATUS_ID === '7') {
       pageTitle = 'Согласовано';
