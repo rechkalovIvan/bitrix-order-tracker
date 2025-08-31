@@ -218,8 +218,7 @@ app.get('/track', async (req, res) => {
                         <div class="slider-instructions">Сдвиньте вправо для подтверждения</div>
                         <div id="modern-slider" class="modern-slider">
                             <div class="slider-track">
-                                <div class="slider-background"></div>
-                                <div class="slider-fill" id="slider-fill"></div>
+                                <div class="slider-background" id="slider-background"></div>
                                 <div class="slider-text">
                                     <span class="slider-text-normal">→</span>
                                     <span class="slider-text-success">✓</span>
@@ -479,18 +478,7 @@ app.get('/track', async (req, res) => {
             width: 100%;
             height: 100%;
             background: #e0e0e0;
-            transition: all 0.3s ease;
-          }
-          
-          .slider-fill {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #2E7D32);
-            transition: width 0.1s ease, background 0.3s ease;
-            border-radius: 35px;
+            transition: background 0.3s ease;
           }
           
           .slider-text {
@@ -559,8 +547,7 @@ app.get('/track', async (req, res) => {
               0 4px 10px rgba(0,0,0,0.25);
           }
           
-          .modern-slider.completed .slider-fill {
-            width: 100% !important;
+          .modern-slider.completed .slider-background {
             background: linear-gradient(90deg, #4CAF50, #2E7D32);
           }
           
@@ -671,6 +658,7 @@ app.get('/track', async (req, res) => {
           let trackWidth = 0;
           let thumbWidth = 0;
           let maxLeft = 0;
+          let trackRect = null;
           
           function initSlider() {
             const slider = document.getElementById('modern-slider');
@@ -679,10 +667,15 @@ app.get('/track', async (req, res) => {
             const thumb = document.getElementById('slider-thumb');
             const track = slider.querySelector('.slider-track');
             
-            // Предварительные вычисления
-            trackWidth = track.offsetWidth;
+            // Получаем точные размеры и позиции
+            trackRect = track.getBoundingClientRect();
+            trackWidth = trackRect.width;
             thumbWidth = thumb.offsetWidth;
-            maxLeft = trackWidth - thumbWidth - 10;
+            maxLeft = trackWidth - thumbWidth;
+            
+            // Центрируем ползунок при инициализации
+            const initialLeft = 5;
+            thumb.style.left = initialLeft + 'px';
             
             // События для мыши
             thumb.addEventListener('mousedown', startDrag);
@@ -728,26 +721,33 @@ app.get('/track', async (req, res) => {
           
           function updateThumbPosition(clientX) {
             const thumb = document.getElementById('slider-thumb');
-            const fill = document.getElementById('slider-fill');
+            const background = document.getElementById('slider-background');
             const slider = document.getElementById('modern-slider');
             
-            const deltaX = clientX - startX;
-            let newLeft = startLeft + deltaX;
+            // Рассчитываем относительную позицию внутри трека
+            const relativeX = clientX - trackRect.left;
+            let newLeft = relativeX - thumbWidth / 2;
             
             // Ограничиваем движение ползунка
-            newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            newLeft = Math.max(5, Math.min(newLeft, maxLeft - 5));
             
             // Плавное обновление позиции
             thumb.style.left = newLeft + 'px';
             
-            // Обновляем заполнение (плавный переход цвета)
-            const fillPercent = (newLeft / maxLeft) * 100;
-            fill.style.width = fillPercent + '%';
+            // Обновляем фон (плавный переход цвета)
+            const percent = (newLeft - 5) / (maxLeft - 10);
+            const gradientPercent = Math.min(100, Math.max(0, percent * 100));
+            
+            if (gradientPercent > 0) {
+              background.style.background = 'linear-gradient(90deg, #4CAF50 0%, #4CAF50 ' + gradientPercent + '%, #e0e0e0 ' + gradientPercent + '%, #e0e0e0 100%)';
+            } else {
+              background.style.background = '#e0e0e0';
+            }
             
             // Проверяем, достиг ли ползунок конца
-            if (newLeft >= maxLeft - 2) {
-              thumb.style.left = maxLeft + 'px';
-              fill.style.width = '100%';
+            if (newLeft >= maxLeft - 10) {
+              thumb.style.left = (maxLeft - 5) + 'px';
+              background.style.background = 'linear-gradient(90deg, #4CAF50, #2E7D32)';
             }
           }
           
@@ -758,7 +758,7 @@ app.get('/track', async (req, res) => {
             const thumb = document.getElementById('slider-thumb');
             const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
             
-            if (currentLeft >= maxLeft - 2) {
+            if (currentLeft >= maxLeft - 10) {
               // Успешное завершение
               completeSlider();
             } else {
@@ -774,7 +774,7 @@ app.get('/track', async (req, res) => {
             const thumb = document.getElementById('slider-thumb');
             const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
             
-            if (currentLeft >= maxLeft - 2) {
+            if (currentLeft >= maxLeft - 10) {
               // Успешное завершение
               completeSlider();
             } else {
@@ -795,63 +795,20 @@ app.get('/track', async (req, res) => {
           
           function resetSlider() {
             const thumb = document.getElementById('slider-thumb');
-            const fill = document.getElementById('slider-fill');
+            const background = document.getElementById('slider-background');
             
             // Плавный сброс с оптимизацией
             thumb.style.transition = 'left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-            fill.style.transition = 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            background.style.transition = 'background 0.3s ease';
             
             thumb.style.left = '5px';
-            fill.style.width = '0%';
+            background.style.background = '#e0e0e0';
             
             // Убираем transition после завершения
             setTimeout(() => {
               thumb.style.transition = '';
-              fill.style.transition = '';
+              background.style.transition = '';
             }, 300);
-          }
-          
-          async function confirmLead(leadId) {
-            const message = document.getElementById('message');
-            
-            try {
-              // Отправляем запрос на обновление статуса лида
-              const response = await fetch('/confirm-lead', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  leadId: leadId,
-                  key: '${key}'
-                })
-              });
-              
-              const result = await response.json();
-              
-              if (result.success) {
-                // Перезагружаем страницу через 1.5 секунды
-                setTimeout(() => {
-                  location.reload();
-                }, 1500);
-              } else {
-                message.innerHTML = '<div style="color: #f44336; text-align: center; margin-top: 16px; padding: 12px; background: #ffebee; border-radius: 8px; font-size: 0.875rem;">❌ Ошибка: ' + result.error + '</div>';
-                // Сбрасываем слайдер при ошибке
-                setTimeout(() => {
-                  const slider = document.getElementById('modern-slider');
-                  slider.classList.remove('completed');
-                  resetSlider();
-                }, 2000);
-              }
-            } catch (error) {
-              message.innerHTML = '<div style="color: #f44336; text-align: center; margin-top: 16px; padding: 12px; background: #ffebee; border-radius: 8px; font-size: 0.875rem;">❌ Ошибка: ' + error.message + '</div>';
-              // Сбрасываем слайдер при ошибке
-              setTimeout(() => {
-                const slider = document.getElementById('modern-slider');
-                slider.classList.remove('completed');
-                resetSlider();
-              }, 2000);
-            }
           }
           
           // Инициализация слайдера при загрузке страницы
