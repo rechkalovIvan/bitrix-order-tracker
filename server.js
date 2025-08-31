@@ -594,8 +594,6 @@ app.get('/track', async (req, res) => {
                 <div class="info-label">Время завершения</div>
                 <div class="info-value">${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}</div>
               </div>
-              
-              ${equipmentHtml}
             </div>
           </div>
           
