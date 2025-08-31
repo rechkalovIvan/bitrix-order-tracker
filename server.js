@@ -218,16 +218,14 @@ app.get('/track', async (req, res) => {
                         <div class="slider-instructions">Сдвиньте вправо для подтверждения</div>
                         <div id="modern-slider" class="modern-slider">
                             <div class="slider-track">
+                                <div class="slider-background"></div>
+                                <div class="slider-fill" id="slider-fill"></div>
                                 <div class="slider-text">
-                                    <span class="slider-text-normal">Сдвиньте →</span>
-                                    <span class="slider-text-success">Подтверждено!</span>
+                                    <span class="slider-text-normal">→</span>
+                                    <span class="slider-text-success">✓</span>
                                 </div>
                                 <div class="slider-thumb" id="slider-thumb">
-                                    <div class="thumb-handle">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </div>
+                                    <div class="thumb-content">→</div>
                                 </div>
                             </div>
                         </div>
@@ -260,6 +258,12 @@ app.get('/track', async (req, res) => {
             padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
           }
           
           body {
@@ -269,6 +273,7 @@ app.get('/track', async (req, res) => {
             line-height: 1.6;
             padding: 20px;
             min-height: 100vh;
+            touch-action: manipulation;
           }
           
           .container {
@@ -457,16 +462,35 @@ app.get('/track', async (req, res) => {
             position: relative;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 35px;
             overflow: hidden;
             cursor: pointer;
             box-shadow: 
-              inset 0 2px 10px rgba(0,0,0,0.1),
-              0 4px 20px rgba(0,0,0,0.15);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              0 4px 20px rgba(0,0,0,0.15),
+              inset 0 2px 10px rgba(0,0,0,0.05);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+          }
+          
+          .slider-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #e0e0e0;
+            transition: all 0.3s ease;
+          }
+          
+          .slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #2E7D32);
+            transition: width 0.1s ease, background 0.3s ease;
+            border-radius: 35px;
           }
           
           .slider-text {
@@ -474,20 +498,23 @@ app.get('/track', async (req, res) => {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: white;
-            font-size: 1.1rem;
-            font-weight: 600;
+            font-size: 24px;
+            font-weight: bold;
             z-index: 2;
             pointer-events: none;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: opacity 0.3s ease;
+            transition: all 0.3s ease;
+          }
+          
+          .slider-text-normal {
+            color: #666;
+            display: block;
           }
           
           .slider-text-success {
+            color: white;
             display: none;
+            font-size: 28px;
+            animation: pulse 0.5s ease-in-out;
           }
           
           .slider-thumb {
@@ -499,40 +526,42 @@ app.get('/track', async (req, res) => {
             cursor: grab;
             z-index: 3;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
           }
           
-          .thumb-handle {
+          .thumb-content {
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+            background: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #666;
             box-shadow: 
               0 6px 20px rgba(0,0,0,0.25),
               0 2px 6px rgba(0,0,0,0.2),
               inset 0 2px 4px rgba(255,255,255,0.8);
-            color: #666;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid #e0e0e0;
+            transition: all 0.2s ease;
           }
           
           .slider-thumb:active {
             cursor: grabbing;
           }
           
-          .thumb-handle:active {
+          .thumb-content:active {
             transform: scale(1.05);
             box-shadow: 
               0 8px 25px rgba(0,0,0,0.3),
-              0 4px 10px rgba(0,0,0,0.25),
-              inset 0 2px 4px rgba(255,255,255,0.6);
+              0 4px 10px rgba(0,0,0,0.25);
           }
           
-          .modern-slider.completed .slider-track {
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-            box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
+          .modern-slider.completed .slider-fill {
+            width: 100% !important;
+            background: linear-gradient(90deg, #4CAF50, #2E7D32);
           }
           
           .modern-slider.completed .slider-text-normal {
@@ -540,23 +569,21 @@ app.get('/track', async (req, res) => {
           }
           
           .modern-slider.completed .slider-text-success {
-            display: flex;
-            animation: pulse 0.5s ease-in-out;
+            display: block;
           }
           
-          .modern-slider.completed .thumb-handle {
-            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+          .modern-slider.completed .thumb-content {
+            background: #4CAF50;
             color: white;
             box-shadow: 
               0 8px 25px rgba(76, 175, 80, 0.4),
-              0 4px 15px rgba(76, 175, 80, 0.3),
-              inset 0 2px 4px rgba(255,255,255,0.3);
+              0 4px 15px rgba(76, 175, 80, 0.3);
           }
           
           @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+            0% { transform: scale(1) translate(-50%, -50%); }
+            50% { transform: scale(1.2) translate(-50%, -50%); }
+            100% { transform: scale(1) translate(-50%, -50%); }
           }
           
           .error-text {
@@ -588,10 +615,6 @@ app.get('/track', async (req, res) => {
             
             .modern-slider-container {
               padding: 0 10px;
-            }
-            
-            .slider-text {
-              font-size: 1rem;
             }
           }
         </style>
@@ -647,6 +670,7 @@ app.get('/track', async (req, res) => {
           let startLeft = 0;
           let trackWidth = 0;
           let thumbWidth = 0;
+          let maxLeft = 0;
           
           function initSlider() {
             const slider = document.getElementById('modern-slider');
@@ -655,8 +679,10 @@ app.get('/track', async (req, res) => {
             const thumb = document.getElementById('slider-thumb');
             const track = slider.querySelector('.slider-track');
             
+            // Предварительные вычисления
             trackWidth = track.offsetWidth;
             thumbWidth = thumb.offsetWidth;
+            maxLeft = trackWidth - thumbWidth - 10;
             
             // События для мыши
             thumb.addEventListener('mousedown', startDrag);
@@ -672,7 +698,7 @@ app.get('/track', async (req, res) => {
           function startDrag(e) {
             e.preventDefault();
             isDragging = true;
-            startX = e.clientX;
+            startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
             const thumb = document.getElementById('slider-thumb');
             startLeft = parseInt(getComputedStyle(thumb).left) || 0;
             document.getElementById('modern-slider').classList.remove('completed');
@@ -689,7 +715,9 @@ app.get('/track', async (req, res) => {
           
           function drag(e) {
             if (!isDragging) return;
-            updateThumbPosition(e.clientX);
+            e.preventDefault();
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+            updateThumbPosition(clientX);
           }
           
           function handleTouchMove(e) {
@@ -700,29 +728,26 @@ app.get('/track', async (req, res) => {
           
           function updateThumbPosition(clientX) {
             const thumb = document.getElementById('slider-thumb');
-            const track = document.getElementById('modern-slider').querySelector('.slider-track');
+            const fill = document.getElementById('slider-fill');
+            const slider = document.getElementById('modern-slider');
             
             const deltaX = clientX - startX;
             let newLeft = startLeft + deltaX;
             
             // Ограничиваем движение ползунка
-            const maxLeft = trackWidth - thumbWidth - 10;
-            newLeft = Math.max(5, Math.min(newLeft, maxLeft));
+            newLeft = Math.max(0, Math.min(newLeft, maxLeft));
             
+            // Плавное обновление позиции
             thumb.style.left = newLeft + 'px';
             
-            // Изменяем градиент фона трека в зависимости от позиции
-            const progress = (newLeft - 5) / (maxLeft - 5);
-            const greenValue = Math.min(255, Math.floor(progress * 255));
-            const redValue = Math.min(255, Math.floor((1 - progress) * 255));
-            
-            track.style.background = \`linear-gradient(90deg, 
-              rgba(\${redValue}, \${255 - greenValue}, \${255 - greenValue}, 0.3) 0%, 
-              rgba(\${Math.min(255, Math.floor(progress * 100))}, \${greenValue}, \${Math.floor(progress * 50)}, 0.4) 100%)\`;
+            // Обновляем заполнение (плавный переход цвета)
+            const fillPercent = (newLeft / maxLeft) * 100;
+            fill.style.width = fillPercent + '%';
             
             // Проверяем, достиг ли ползунок конца
             if (newLeft >= maxLeft - 2) {
               thumb.style.left = maxLeft + 'px';
+              fill.style.width = '100%';
             }
           }
           
@@ -731,7 +756,6 @@ app.get('/track', async (req, res) => {
             isDragging = false;
             
             const thumb = document.getElementById('slider-thumb');
-            const maxLeft = trackWidth - thumbWidth - 10;
             const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
             
             if (currentLeft >= maxLeft - 2) {
@@ -748,7 +772,6 @@ app.get('/track', async (req, res) => {
             isDragging = false;
             
             const thumb = document.getElementById('slider-thumb');
-            const maxLeft = trackWidth - thumbWidth - 10;
             const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
             
             if (currentLeft >= maxLeft - 2) {
@@ -762,14 +785,9 @@ app.get('/track', async (req, res) => {
           
           function completeSlider() {
             const slider = document.getElementById('modern-slider');
-            const thumb = document.getElementById('slider-thumb');
-            const track = slider.querySelector('.slider-track');
             const message = document.getElementById('message');
             
             slider.classList.add('completed');
-            
-            // Устанавливаем финальный градиент
-            track.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
             
             // Отправляем запрос на подтверждение
             confirmLead(${lead.ID});
@@ -777,18 +795,20 @@ app.get('/track', async (req, res) => {
           
           function resetSlider() {
             const thumb = document.getElementById('slider-thumb');
-            const track = document.getElementById('modern-slider').querySelector('.slider-track');
+            const fill = document.getElementById('slider-fill');
             
-            // Плавный сброс
-            thumb.style.transition = 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            // Плавный сброс с оптимизацией
+            thumb.style.transition = 'left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            fill.style.transition = 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
             
             thumb.style.left = '5px';
+            fill.style.width = '0%';
             
-            // Сброс градиента
+            // Убираем transition после завершения
             setTimeout(() => {
-              track.style.background = 'rgba(255, 255, 255, 0.2)';
               thumb.style.transition = '';
-            }, 400);
+              fill.style.transition = '';
+            }, 300);
           }
           
           async function confirmLead(leadId) {
@@ -835,15 +855,14 @@ app.get('/track', async (req, res) => {
           }
           
           // Инициализация слайдера при загрузке страницы
-          document.addEventListener('DOMContentLoaded', initSlider);
-          window.addEventListener('resize', () => {
-            // Пересчитываем размеры при ресайзе
-            const slider = document.getElementById('modern-slider');
-            if (slider) {
-              const track = slider.querySelector('.slider-track');
-              trackWidth = track.offsetWidth;
-              thumbWidth = document.getElementById('slider-thumb').offsetWidth;
-            }
+          document.addEventListener('DOMContentLoaded', function() {
+            // Небольшая задержка для правильного расчета размеров
+            setTimeout(initSlider, 100);
+          });
+          
+          window.addEventListener('resize', function() {
+            // Пересчитываем размеры при изменении размера окна
+            setTimeout(initSlider, 100);
           });
         </script>
       </body>
