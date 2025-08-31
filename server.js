@@ -574,7 +574,13 @@ app.get('/track', async (req, res) => {
           </div>
           
           <div class="card">
-            <div class="info-grid">              
+            <div class="info-grid">
+
+             <div class="info-item">
+                <div class="info-label">Статус</div>
+                <div class="info-value">${lead.STATUS_ID}</div>
+              </div>
+                            
               <div class="info-item">
                 <div class="info-label">Дата начала</div>
                 <div class="info-value">${formatDate(lead.UF_CRM_BEGINDATE)}</div>
