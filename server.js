@@ -214,23 +214,21 @@ app.get('/track', async (req, res) => {
     if (lead.STATUS_ID === '8') {
       sliderHtml = `
                 <div class="slider-section">
-                    <div class="slider-container">
-                        <div id="unlock-slider" class="unlock-slider">
+                    <div class="modern-slider-container">
+                        <div class="slider-instructions">Сдвиньте вправо для подтверждения</div>
+                        <div id="modern-slider" class="modern-slider">
                             <div class="slider-track">
-                                <div class="slider-fill" id="slider-fill"></div>
-                                <div class="slider-text">Сдвиньте для подтверждения</div>
-                                <div class="slider-thumb" id="slider-thumb">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
+                                <div class="slider-progress" id="slider-progress"></div>
+                                <div class="slider-text">
+                                    <span class="slider-text-normal">Сдвиньте →</span>
+                                    <span class="slider-text-success">Подтверждено!</span>
                                 </div>
-                            </div>
-                            <div class="slider-success" id="slider-success">
-                                <div class="success-content">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M20 6L9 17L4 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                    <span>Подтверждено!</span>
+                                <div class="slider-thumb" id="slider-thumb">
+                                    <div class="thumb-handle">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -433,17 +431,26 @@ app.get('/track', async (req, res) => {
           }
           
           .slider-section {
-            margin: 30px 0;
+            margin: 40px 0 30px;
           }
           
-          .slider-container {
-            padding: 0 20px;
+          .modern-slider-container {
+            padding: 0 15px;
           }
           
-          .unlock-slider {
+          .slider-instructions {
+            text-align: center;
+            color: white;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+          }
+          
+          .modern-slider {
             position: relative;
             width: 100%;
-            height: 60px;
+            height: 70px;
             user-select: none;
           }
           
@@ -451,23 +458,28 @@ app.get('/track', async (req, res) => {
             position: relative;
             width: 100%;
             height: 100%;
-            background: #e0e0e0;
-            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 35px;
             overflow: hidden;
             cursor: pointer;
-            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
+            box-shadow: 
+              inset 0 2px 10px rgba(0,0,0,0.1),
+              0 4px 20px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           }
           
-          .slider-fill {
+          .slider-progress {
             position: absolute;
             top: 0;
             left: 0;
             height: 100%;
             width: 0;
-            background: linear-gradient(90deg, #4caf50, #8bc34a);
-            border-radius: 30px;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 35px;
             transition: width 0.1s ease;
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
           }
           
           .slider-text {
@@ -475,69 +487,92 @@ app.get('/track', async (req, res) => {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: #666;
-            font-size: 0.875rem;
-            font-weight: 500;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
             z-index: 2;
             pointer-events: none;
-            transition: opacity 0.3s ease;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          
+          .slider-text-success {
+            display: none;
           }
           
           .slider-thumb {
             position: absolute;
             top: 5px;
             left: 5px;
-            width: 50px;
-            height: 50px;
-            background: white;
-            border-radius: 50%;
+            width: 60px;
+            height: 60px;
             cursor: grab;
+            z-index: 3;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          
+          .thumb-handle {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            transition: all 0.2s ease;
-            z-index: 3;
+            box-shadow: 
+              0 6px 20px rgba(0,0,0,0.25),
+              0 2px 6px rgba(0,0,0,0.2),
+              inset 0 2px 4px rgba(255,255,255,0.8);
             color: #666;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           }
           
           .slider-thumb:active {
             cursor: grabbing;
             transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
           }
           
-          .slider-success {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #4caf50, #8bc34a);
-            border-radius: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+          .thumb-handle:active {
+            box-shadow: 
+              0 8px 25px rgba(0,0,0,0.3),
+              0 4px 10px rgba(0,0,0,0.25),
+              inset 0 2px 4px rgba(255,255,255,0.6);
+          }
+          
+          .modern-slider.completed .slider-track {
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
+          }
+          
+          .modern-slider.completed .slider-progress {
             opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 1;
           }
           
-          .success-content {
+          .modern-slider.completed .slider-text-normal {
+            display: none;
+          }
+          
+          .modern-slider.completed .slider-text-success {
             display: flex;
-            align-items: center;
-            gap: 8px;
+            animation: pulse 1s ease-in-out;
+          }
+          
+          .modern-slider.completed .thumb-handle {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
             color: white;
-            font-weight: 600;
-            font-size: 1rem;
+            box-shadow: 
+              0 8px 25px rgba(76, 175, 80, 0.4),
+              0 4px 15px rgba(76, 175, 80, 0.3),
+              inset 0 2px 4px rgba(255,255,255,0.3);
           }
           
-          .unlock-slider.completed .slider-text {
-            opacity: 0;
-          }
-          
-          .unlock-slider.completed .slider-success {
-            opacity: 1;
+          @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
           }
           
           .error-text {
@@ -565,6 +600,14 @@ app.get('/track', async (req, res) => {
             
             .info-card {
               padding: 12px;
+            }
+            
+            .modern-slider-container {
+              padding: 0 10px;
+            }
+            
+            .slider-text {
+              font-size: 1rem;
             }
           }
         </style>
@@ -623,7 +666,7 @@ app.get('/track', async (req, res) => {
           let thumbWidth = 0;
           
           function initSlider() {
-            const slider = document.getElementById('unlock-slider');
+            const slider = document.getElementById('modern-slider');
             if (!slider) return;
             
             const thumb = document.getElementById('slider-thumb');
@@ -650,7 +693,7 @@ app.get('/track', async (req, res) => {
             startX = e.clientX;
             const thumb = document.getElementById('slider-thumb');
             startLeft = parseInt(getComputedStyle(thumb).left) || 0;
-            document.getElementById('unlock-slider').classList.remove('completed');
+            document.getElementById('modern-slider').classList.remove('completed');
           }
           
           function handleTouchStart(e) {
@@ -659,7 +702,7 @@ app.get('/track', async (req, res) => {
             startX = e.touches[0].clientX;
             const thumb = document.getElementById('slider-thumb');
             startLeft = parseInt(getComputedStyle(thumb).left) || 0;
-            document.getElementById('unlock-slider').classList.remove('completed');
+            document.getElementById('modern-slider').classList.remove('completed');
           }
           
           function drag(e) {
@@ -675,8 +718,8 @@ app.get('/track', async (req, res) => {
           
           function updateThumbPosition(clientX) {
             const thumb = document.getElementById('slider-thumb');
-            const fill = document.getElementById('slider-fill');
-            const slider = document.getElementById('unlock-slider');
+            const progress = document.getElementById('slider-progress');
+            const slider = document.getElementById('modern-slider');
             const track = slider.querySelector('.slider-track');
             
             const deltaX = clientX - startX;
@@ -690,12 +733,12 @@ app.get('/track', async (req, res) => {
             
             // Обновляем заполнение
             const fillWidth = (newLeft / maxLeft) * 100;
-            fill.style.width = fillWidth + '%';
+            progress.style.width = fillWidth + '%';
             
             // Проверяем, достиг ли ползунок конца
             if (newLeft >= maxLeft - 5) {
               thumb.style.left = maxLeft + 'px';
-              fill.style.width = '100%';
+              progress.style.width = '100%';
             }
           }
           
@@ -734,10 +777,9 @@ app.get('/track', async (req, res) => {
           }
           
           function completeSlider() {
-            const slider = document.getElementById('unlock-slider');
+            const slider = document.getElementById('modern-slider');
             const thumb = document.getElementById('slider-thumb');
-            const fill = document.getElementById('slider-fill');
-            const success = document.getElementById('slider-success');
+            const progress = document.getElementById('slider-progress');
             const message = document.getElementById('message');
             
             slider.classList.add('completed');
@@ -748,20 +790,20 @@ app.get('/track', async (req, res) => {
           
           function resetSlider() {
             const thumb = document.getElementById('slider-thumb');
-            const fill = document.getElementById('slider-fill');
+            const progress = document.getElementById('slider-progress');
             
             // Плавный сброс
-            thumb.style.transition = 'left 0.3s ease, transform 0.2s ease';
-            fill.style.transition = 'width 0.3s ease';
+            thumb.style.transition = 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            progress.style.transition = 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
             
             thumb.style.left = '5px';
-            fill.style.width = '0%';
+            progress.style.width = '0%';
             
             // Убираем transition после завершения
             setTimeout(() => {
               thumb.style.transition = '';
-              fill.style.transition = '';
-            }, 300);
+              progress.style.transition = '';
+            }, 400);
           }
           
           async function confirmLead(leadId) {
@@ -791,7 +833,7 @@ app.get('/track', async (req, res) => {
                 message.innerHTML = '<div style="color: #f44336; text-align: center; margin-top: 16px; padding: 12px; background: #ffebee; border-radius: 8px; font-size: 0.875rem;">❌ Ошибка: ' + result.error + '</div>';
                 // Сбрасываем слайдер при ошибке
                 setTimeout(() => {
-                  const slider = document.getElementById('unlock-slider');
+                  const slider = document.getElementById('modern-slider');
                   slider.classList.remove('completed');
                   resetSlider();
                 }, 2000);
@@ -800,7 +842,7 @@ app.get('/track', async (req, res) => {
               message.innerHTML = '<div style="color: #f44336; text-align: center; margin-top: 16px; padding: 12px; background: #ffebee; border-radius: 8px; font-size: 0.875rem;">❌ Ошибка: ' + error.message + '</div>';
               // Сбрасываем слайдер при ошибке
               setTimeout(() => {
-                const slider = document.getElementById('unlock-slider');
+                const slider = document.getElementById('modern-slider');
                 slider.classList.remove('completed');
                 resetSlider();
               }, 2000);
