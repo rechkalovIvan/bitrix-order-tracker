@@ -218,7 +218,6 @@ app.get('/track', async (req, res) => {
                         <div class="slider-instructions">Сдвиньте вправо для подтверждения</div>
                         <div id="modern-slider" class="modern-slider">
                             <div class="slider-track">
-                                <div class="slider-progress" id="slider-progress"></div>
                                 <div class="slider-text">
                                     <span class="slider-text-normal">Сдвиньте →</span>
                                     <span class="slider-text-success">Подтверждено!</span>
@@ -470,18 +469,6 @@ app.get('/track', async (req, res) => {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           }
           
-          .slider-progress {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 0;
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-            border-radius: 35px;
-            transition: width 0.1s ease;
-            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
-          }
-          
           .slider-text {
             position: absolute;
             top: 50%;
@@ -496,6 +483,7 @@ app.get('/track', async (req, res) => {
             display: flex;
             align-items: center;
             gap: 8px;
+            transition: opacity 0.3s ease;
           }
           
           .slider-text-success {
@@ -532,10 +520,10 @@ app.get('/track', async (req, res) => {
           
           .slider-thumb:active {
             cursor: grabbing;
-            transform: scale(1.05);
           }
           
           .thumb-handle:active {
+            transform: scale(1.05);
             box-shadow: 
               0 8px 25px rgba(0,0,0,0.3),
               0 4px 10px rgba(0,0,0,0.25),
@@ -547,17 +535,13 @@ app.get('/track', async (req, res) => {
             box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
           }
           
-          .modern-slider.completed .slider-progress {
-            opacity: 0;
-          }
-          
           .modern-slider.completed .slider-text-normal {
             display: none;
           }
           
           .modern-slider.completed .slider-text-success {
             display: flex;
-            animation: pulse 1s ease-in-out;
+            animation: pulse 0.5s ease-in-out;
           }
           
           .modern-slider.completed .thumb-handle {
@@ -661,7 +645,6 @@ app.get('/track', async (req, res) => {
           let isDragging = false;
           let startX = 0;
           let startLeft = 0;
-          let sliderWidth = 0;
           let trackWidth = 0;
           let thumbWidth = 0;
           
@@ -672,7 +655,6 @@ app.get('/track', async (req, res) => {
             const thumb = document.getElementById('slider-thumb');
             const track = slider.querySelector('.slider-track');
             
-            sliderWidth = slider.offsetWidth;
             trackWidth = track.offsetWidth;
             thumbWidth = thumb.offsetWidth;
             
@@ -718,27 +700,29 @@ app.get('/track', async (req, res) => {
           
           function updateThumbPosition(clientX) {
             const thumb = document.getElementById('slider-thumb');
-            const progress = document.getElementById('slider-progress');
-            const slider = document.getElementById('modern-slider');
-            const track = slider.querySelector('.slider-track');
+            const track = document.getElementById('modern-slider').querySelector('.slider-track');
             
             const deltaX = clientX - startX;
             let newLeft = startLeft + deltaX;
             
             // Ограничиваем движение ползунка
             const maxLeft = trackWidth - thumbWidth - 10;
-            newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            newLeft = Math.max(5, Math.min(newLeft, maxLeft));
             
             thumb.style.left = newLeft + 'px';
             
-            // Обновляем заполнение
-            const fillWidth = (newLeft / maxLeft) * 100;
-            progress.style.width = fillWidth + '%';
+            // Изменяем градиент фона трека в зависимости от позиции
+            const progress = (newLeft - 5) / (maxLeft - 5);
+            const greenValue = Math.min(255, Math.floor(progress * 255));
+            const redValue = Math.min(255, Math.floor((1 - progress) * 255));
+            
+            track.style.background = \`linear-gradient(90deg, 
+              rgba(\${redValue}, \${255 - greenValue}, \${255 - greenValue}, 0.3) 0%, 
+              rgba(\${Math.min(255, Math.floor(progress * 100))}, \${greenValue}, \${Math.floor(progress * 50)}, 0.4) 100%)\`;
             
             // Проверяем, достиг ли ползунок конца
-            if (newLeft >= maxLeft - 5) {
+            if (newLeft >= maxLeft - 2) {
               thumb.style.left = maxLeft + 'px';
-              progress.style.width = '100%';
             }
           }
           
@@ -750,7 +734,7 @@ app.get('/track', async (req, res) => {
             const maxLeft = trackWidth - thumbWidth - 10;
             const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
             
-            if (currentLeft >= maxLeft - 5) {
+            if (currentLeft >= maxLeft - 2) {
               // Успешное завершение
               completeSlider();
             } else {
@@ -767,7 +751,7 @@ app.get('/track', async (req, res) => {
             const maxLeft = trackWidth - thumbWidth - 10;
             const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
             
-            if (currentLeft >= maxLeft - 5) {
+            if (currentLeft >= maxLeft - 2) {
               // Успешное завершение
               completeSlider();
             } else {
@@ -779,10 +763,13 @@ app.get('/track', async (req, res) => {
           function completeSlider() {
             const slider = document.getElementById('modern-slider');
             const thumb = document.getElementById('slider-thumb');
-            const progress = document.getElementById('slider-progress');
+            const track = slider.querySelector('.slider-track');
             const message = document.getElementById('message');
             
             slider.classList.add('completed');
+            
+            // Устанавливаем финальный градиент
+            track.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
             
             // Отправляем запрос на подтверждение
             confirmLead(${lead.ID});
@@ -790,19 +777,17 @@ app.get('/track', async (req, res) => {
           
           function resetSlider() {
             const thumb = document.getElementById('slider-thumb');
-            const progress = document.getElementById('slider-progress');
+            const track = document.getElementById('modern-slider').querySelector('.slider-track');
             
             // Плавный сброс
             thumb.style.transition = 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-            progress.style.transition = 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
             
             thumb.style.left = '5px';
-            progress.style.width = '0%';
             
-            // Убираем transition после завершения
+            // Сброс градиента
             setTimeout(() => {
+              track.style.background = 'rgba(255, 255, 255, 0.2)';
               thumb.style.transition = '';
-              progress.style.transition = '';
             }, 400);
           }
           
@@ -851,7 +836,15 @@ app.get('/track', async (req, res) => {
           
           // Инициализация слайдера при загрузке страницы
           document.addEventListener('DOMContentLoaded', initSlider);
-          window.addEventListener('resize', initSlider);
+          window.addEventListener('resize', () => {
+            // Пересчитываем размеры при ресайзе
+            const slider = document.getElementById('modern-slider');
+            if (slider) {
+              const track = slider.querySelector('.slider-track');
+              trackWidth = track.offsetWidth;
+              thumbWidth = document.getElementById('slider-thumb').offsetWidth;
+            }
+          });
         </script>
       </body>
       </html>
