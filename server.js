@@ -585,7 +585,7 @@ app.get('/track', async (req, res) => {
                             
               <div class="info-item">
                 <div class="info-label">Дата начала</div>
-                <div class="info-value">${formatDate(lead.UF_CRM_BEGINDATE)}</div>
+                <div class="info-value">${formatRussianDate(lead.UF_CRM_BEGINDATE)}</div>
               </div>
               
               <div class="info-item">
@@ -595,7 +595,7 @@ app.get('/track', async (req, res) => {
               
               <div class="info-item">
                 <div class="info-label">Дата завершения</div>
-                <div class="info-value">${formatDate(lead.UF_CRM_5FB96D2488307)}</div>
+                <div class="info-value">${formatRussianDate(lead.UF_CRM_5FB96D2488307)}</div>
               </div>
               
               <div class="info-item">
@@ -885,6 +885,36 @@ function formatDate(dateStr) {
   try {
     const date = new Date(dateStr);
     return date.toLocaleDateString('ru-RU');
+  } catch {
+    return dateStr;
+  }
+}
+
+// Форматирование даты в формате "Воскресенье, 31 августа 2025"
+function formatRussianDate(dateStr) {
+  if (!dateStr) return '—';
+
+  try {
+    const date = new Date(dateStr);
+
+    // Дни недели
+    const weekdays = [
+      'Воскресенье', 'Понедельник', 'Вторник', 'Среда',
+      'Четверг', 'Пятница', 'Суббота'
+    ];
+
+    // Месяцы в родительном падеже
+    const months = [
+      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+    ];
+
+    const weekday = weekdays[date.getDay()];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+
+    return `${weekday}, ${day} ${month} ${year}`;
   } catch {
     return dateStr;
   }
