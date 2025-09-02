@@ -216,13 +216,13 @@ app.get('/track', async (req, res) => {
                 <div class="slider-section">
                     <div class="slider-wrapper">
                         <div id="slider-track">
-                            <div class="slider-text">Сдвиньте →</div>
+                            <div class="slider-text">Все верно</div>
                             <div class="completion-animation"></div>
                         </div>
                         <div id="slider-thumb">
                             <div class="slider-icon">→</div>
                         </div>
-                        <div class="hint-text">Проведите пальцем вправо</div>
+                        <div class="hint-text">Проведите вправо</div>
                     </div>
                     <div id="message"></div>
                 </div>
@@ -489,10 +489,11 @@ app.get('/track', async (req, res) => {
           
           .hint-text {
             margin-top: 15px;
-            color: #718096;
+            color: #ffffff;
             font-size: 14px;
-            opacity: 0.8;
+            font-weight: 500;
             text-align: center;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
           }
           
           .completion-animation {
@@ -789,16 +790,8 @@ app.get('/track', async (req, res) => {
             completionAnimation.style.transition = 'opacity 0.3s ease';
             completionAnimation.style.opacity = '1';
             
-            // Показываем сообщение об успехе
-            showMessage('✓ Действие успешно подтверждено!', 'success');
-            
             // Отправляем запрос на подтверждение
             confirmLead(${lead.ID});
-          }
-          
-          // Показать сообщение
-          function showMessage(text, type) {
-            message.innerHTML = '<div class="success-message"><span>' + text + '</span></div>';
           }
           
           // Отправка запроса на подтверждение лида
@@ -819,10 +812,10 @@ app.get('/track', async (req, res) => {
               const result = await response.json();
               
               if (result.success) {
-                // Перезагружаем страницу через 1.5 секунды
+                // Перезагружаем страницу через 0.5 секунды
                 setTimeout(() => {
                   location.reload();
-                }, 1500);
+                }, 500);
               } else {
                 message.innerHTML = '<div style="color: #f44336; text-align: center; margin-top: 16px; padding: 12px; background: #ffebee; border-radius: 8px; font-size: 0.875rem;">❌ Ошибка: ' + result.error + '</div>';
                 // Сбрасываем слайдер при ошибке
