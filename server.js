@@ -214,26 +214,15 @@ app.get('/track', async (req, res) => {
     if (lead.STATUS_ID === '8') {
       sliderHtml = `
                 <div class="slider-section">
-                    <div class="slider-container">
-                        <div id="unlock-slider" class="unlock-slider">
-                            <div class="slider-track">
-                                <div class="slider-fill" id="slider-fill"></div>
-                                <div class="slider-text">Сдвиньте для подтверждения</div>
-                                <div class="slider-thumb" id="slider-thumb">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="slider-success" id="slider-success">
-                                <div class="success-content">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M20 6L9 17L4 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                    <span>Подтверждено!</span>
-                                </div>
-                            </div>
+                    <div class="slider-wrapper">
+                        <div id="slider-track">
+                            <div class="slider-text">Сдвиньте →</div>
+                            <div class="completion-animation"></div>
                         </div>
+                        <div id="slider-thumb">
+                            <div class="slider-icon">→</div>
+                        </div>
+                        <div class="hint-text">Проведите пальцем вправо</div>
                     </div>
                     <div id="message"></div>
                 </div>
@@ -436,54 +425,22 @@ app.get('/track', async (req, res) => {
             margin: 30px 0;
           }
           
-          .slider-container {
-            padding: 0 20px;
+          .slider-wrapper {
+            position: relative;
+            margin: 30px 0;
+            padding: 0 10px;
           }
           
-          .unlock-slider {
+          #slider-track {
             position: relative;
-            width: 100%;
             height: 60px;
-            user-select: none;
-          }
-          
-          .slider-track {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            background: #e0e0e0;
+            background: #edf2f7;
             border-radius: 30px;
             overflow: hidden;
-            cursor: pointer;
-            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
+            transition: background-color 0.3s ease;
           }
           
-          .slider-fill {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 0;
-            background: linear-gradient(90deg, #4caf50, #8bc34a);
-            border-radius: 30px;
-            transition: width 0.1s ease;
-          }
-          
-          .slider-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #666;
-            font-size: 0.875rem;
-            font-weight: 500;
-            z-index: 2;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-          }
-          
-          .slider-thumb {
+          #slider-thumb {
             position: absolute;
             top: 5px;
             left: 5px;
@@ -491,53 +448,81 @@ app.get('/track', async (req, res) => {
             height: 50px;
             background: white;
             border-radius: 50%;
-            cursor: grab;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 10;
             display: flex;
-            align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            transition: all 0.2s ease;
-            z-index: 3;
-            color: #666;
+            align-items: center;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
           }
           
-          .slider-thumb:active {
+          #slider-thumb:active {
+            transform: scale(1.1);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
             cursor: grabbing;
-            transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
           }
           
-          .slider-success {
+          .slider-icon {
+            color: #4299e1;
+            font-size: 20px;
+            transition: color 0.3s;
+          }
+          
+          .slider-text {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #4a5568;
+            font-weight: 500;
+            font-size: 18px;
+            user-select: none;
+            pointer-events: none;
+            transition: opacity 0.3s, color 0.3s;
+            z-index: 5;
+          }
+          
+          .hint-text {
+            margin-top: 15px;
+            color: #718096;
+            font-size: 14px;
+            opacity: 0.8;
+            text-align: center;
+          }
+          
+          .completion-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(56, 161, 105, 0.3);
             border-radius: 30px;
+            opacity: 0;
+            pointer-events: none;
+          }
+          
+          .success-message {
+            background: #f0fff4;
+            color: #38a169;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 500;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 1;
+            gap: 10px;
+            animation: fadeIn 0.5s ease;
           }
           
-          .success-content {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: white;
-            font-weight: 600;
-            font-size: 1rem;
-          }
-          
-          .unlock-slider.completed .slider-text {
-            opacity: 0;
-          }
-          
-          .unlock-slider.completed .slider-success {
-            opacity: 1;
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
           }
           
           .error-text {
@@ -615,158 +600,209 @@ app.get('/track', async (req, res) => {
         </div>
 
         <script>
+          // Элементы DOM
+          let track, thumb, message, sliderText, completionAnimation;
+          
+          // Состояние слайдера
           let isDragging = false;
           let startX = 0;
           let startLeft = 0;
-          let sliderWidth = 0;
           let trackWidth = 0;
           let thumbWidth = 0;
+          let maxLeft = 0;
           
+          // Инициализация слайдера
           function initSlider() {
-            const slider = document.getElementById('unlock-slider');
-            if (!slider) return;
+            track = document.getElementById('slider-track');
+            thumb = document.getElementById('slider-thumb');
+            message = document.getElementById('message');
+            sliderText = document.querySelector('.slider-text');
+            completionAnimation = document.querySelector('.completion-animation');
             
-            const thumb = document.getElementById('slider-thumb');
-            const track = slider.querySelector('.slider-track');
+            if (!track || !thumb) return;
             
-            sliderWidth = slider.offsetWidth;
+            // Получаем актуальные размеры
             trackWidth = track.offsetWidth;
             thumbWidth = thumb.offsetWidth;
+            maxLeft = trackWidth - thumbWidth - 10;
             
-            // События для мыши
-            thumb.addEventListener('mousedown', startDrag);
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('mouseup', endDrag);
+            // Сбрасываем состояние
+            resetSlider();
             
-            // События для тача
-            thumb.addEventListener('touchstart', handleTouchStart, { passive: false });
-            document.addEventListener('touchmove', handleTouchMove, { passive: false });
-            document.addEventListener('touchend', handleTouchEnd);
+            // Добавляем обработчики событий
+            addEventListeners();
           }
           
-          function startDrag(e) {
+          // Добавление обработчиков событий
+          function addEventListeners() {
+            // События для мыши
+            thumb.addEventListener('mousedown', onDragStart);
+            document.addEventListener('mousemove', onDragMove);
+            document.addEventListener('mouseup', onDragEnd);
+            
+            // События для касаний
+            thumb.addEventListener('touchstart', onTouchStart, { passive: false });
+            document.addEventListener('touchmove', onTouchMove, { passive: false });
+            document.addEventListener('touchend', onDragEnd);
+            document.addEventListener('touchcancel', onDragEnd);
+            
+            // Предотвращение контекстного меню на thumb
+            thumb.addEventListener('contextmenu', (e) => e.preventDefault());
+          }
+          
+          // Обработчик начала перетаскивания
+          function onDragStart(e) {
             e.preventDefault();
             isDragging = true;
             startX = e.clientX;
-            const thumb = document.getElementById('slider-thumb');
             startLeft = parseInt(getComputedStyle(thumb).left) || 0;
-            document.getElementById('unlock-slider').classList.remove('completed');
+            
+            // Добавляем активный класс
+            thumb.classList.add('active');
+            
+            // Блокируем скролл страницы
+            document.body.style.overflow = 'hidden';
           }
           
-          function handleTouchStart(e) {
-            e.preventDefault();
+          // Обработчик касания
+          function onTouchStart(e) {
+            if (e.cancelable) e.preventDefault();
             isDragging = true;
             startX = e.touches[0].clientX;
-            const thumb = document.getElementById('slider-thumb');
             startLeft = parseInt(getComputedStyle(thumb).left) || 0;
-            document.getElementById('unlock-slider').classList.remove('completed');
+            
+            // Добавляем активный класс
+            thumb.classList.add('active');
+            
+            // Блокируем скролл страницы
+            document.body.style.overflow = 'hidden';
           }
           
-          function drag(e) {
+          // Обработчик движения при перетаскивании
+          function onDragMove(e) {
             if (!isDragging) return;
-            updateThumbPosition(e.clientX);
-          }
-          
-          function handleTouchMove(e) {
-            if (!isDragging) return;
+            
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            if (!clientX) return;
+            
             e.preventDefault();
+            updateThumbPosition(clientX);
+          }
+          
+          // Обработчик движения при касании
+          function onTouchMove(e) {
+            if (!isDragging) return;
+            
+            if (e.cancelable) e.preventDefault();
             updateThumbPosition(e.touches[0].clientX);
           }
           
-          function updateThumbPosition(clientX) {
-            const thumb = document.getElementById('slider-thumb');
-            const fill = document.getElementById('slider-fill');
-            const slider = document.getElementById('unlock-slider');
-            const track = slider.querySelector('.slider-track');
+          // Обработчик окончания перетаскивания
+          function onDragEnd() {
+            if (!isDragging) return;
             
+            isDragging = false;
+            thumb.classList.remove('active');
+            
+            // Восстанавливаем скролл страницы
+            document.body.style.overflow = '';
+            
+            const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
+            
+            if (currentLeft >= maxLeft - 15) {
+              completeSlider();
+            } else {
+              resetSlider();
+            }
+          }
+          
+          // Обновление позиции thumb
+          function updateThumbPosition(clientX) {
             const deltaX = clientX - startX;
             let newLeft = startLeft + deltaX;
             
-            // Ограничиваем движение ползунка
-            const maxLeft = trackWidth - thumbWidth - 10;
-            newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            // Ограничиваем движение
+            newLeft = Math.max(5, Math.min(newLeft, maxLeft));
             
+            // Обновляем позицию
             thumb.style.left = newLeft + 'px';
             
-            // Обновляем заполнение
-            const fillWidth = (newLeft / maxLeft) * 100;
-            fill.style.width = fillWidth + '%';
+            // Вычисляем процент заполнения
+            const fillPercent = (newLeft / maxLeft) * 100;
             
-            // Проверяем, достиг ли ползунок конца
-            if (newLeft >= maxLeft - 5) {
-              thumb.style.left = maxLeft + 'px';
-              fill.style.width = '100%';
-            }
-          }
-          
-          function endDrag(e) {
-            if (!isDragging) return;
-            isDragging = false;
+            // Меняем цвет фона в зависимости от прогресса
+            updateTrackColor(fillPercent);
             
-            const thumb = document.getElementById('slider-thumb');
-            const maxLeft = trackWidth - thumbWidth - 10;
-            const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
-            
-            if (currentLeft >= maxLeft - 5) {
-              // Успешное завершение
-              completeSlider();
+            // Скрываем текст при движении
+            if (fillPercent > 10) {
+              sliderText.style.opacity = '0';
             } else {
-              // Сброс позиции
-              resetSlider();
+              sliderText.style.opacity = '1';
             }
           }
           
-          function handleTouchEnd(e) {
-            if (!isDragging) return;
-            isDragging = false;
+          // Изменение цвета фона в зависимости от прогресса
+          function updateTrackColor(percent) {
+            // Интерполяция цвета от серого к зеленому
+            const r = Math.floor(237 + (56 - 237) * percent / 100);
+            const g = Math.floor(242 + (161 - 242) * percent / 100);
+            const b = Math.floor(247 + (105 - 247) * percent / 100);
             
-            const thumb = document.getElementById('slider-thumb');
-            const maxLeft = trackWidth - thumbWidth - 10;
-            const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
+            track.style.backgroundColor = 'rgb(' + r + ', ' + g + ', ' + b + ')';
             
-            if (currentLeft >= maxLeft - 5) {
-              // Успешное завершение
-              completeSlider();
+            // Меняем цвет текста на белый при достаточном прогрессе
+            if (percent > 50) {
+              sliderText.style.color = 'white';
             } else {
-              // Сброс позиции
-              resetSlider();
+              sliderText.style.color = '#4a5568';
             }
           }
           
+          // Сброс слайдера
+          function resetSlider() {
+            thumb.style.transition = 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            track.style.transition = 'background-color 0.4s ease';
+            
+            thumb.style.left = '5px';
+            track.style.backgroundColor = '#edf2f7';
+            sliderText.style.opacity = '1';
+            sliderText.style.color = '#4a5568';
+            
+            // Убираем transition после завершения
+            setTimeout(() => {
+              thumb.style.transition = '';
+              track.style.transition = '';
+            }, 400);
+          }
+          
+          // Завершение слайдера
           function completeSlider() {
-            const slider = document.getElementById('unlock-slider');
-            const thumb = document.getElementById('slider-thumb');
-            const fill = document.getElementById('slider-fill');
-            const success = document.getElementById('slider-success');
-            const message = document.getElementById('message');
+            // Анимация завершения
+            thumb.style.transition = 'left 0.3s ease, transform 0.3s ease';
+            track.style.transition = 'background-color 0.3s ease';
             
-            slider.classList.add('completed');
+            thumb.style.left = maxLeft + 'px';
+            track.style.backgroundColor = '#38a169';
+            sliderText.style.color = 'white';
+            
+            // Анимация завершения
+            completionAnimation.style.transition = 'opacity 0.3s ease';
+            completionAnimation.style.opacity = '1';
+            
+            // Показываем сообщение об успехе
+            showMessage('✓ Действие успешно подтверждено!', 'success');
             
             // Отправляем запрос на подтверждение
             confirmLead(${lead.ID});
           }
           
-          function resetSlider() {
-            const thumb = document.getElementById('slider-thumb');
-            const fill = document.getElementById('slider-fill');
-            
-            // Плавный сброс
-            thumb.style.transition = 'left 0.3s ease, transform 0.2s ease';
-            fill.style.transition = 'width 0.3s ease';
-            
-            thumb.style.left = '5px';
-            fill.style.width = '0%';
-            
-            // Убираем transition после завершения
-            setTimeout(() => {
-              thumb.style.transition = '';
-              fill.style.transition = '';
-            }, 300);
+          // Показать сообщение
+          function showMessage(text, type) {
+            message.innerHTML = '<div class="success-message"><span>' + text + '</span></div>';
           }
           
+          // Отправка запроса на подтверждение лида
           async function confirmLead(leadId) {
-            const message = document.getElementById('message');
-            
             try {
               // Отправляем запрос на обновление статуса лида
               const response = await fetch('/confirm-lead', {
@@ -791,8 +827,7 @@ app.get('/track', async (req, res) => {
                 message.innerHTML = '<div style="color: #f44336; text-align: center; margin-top: 16px; padding: 12px; background: #ffebee; border-radius: 8px; font-size: 0.875rem;">❌ Ошибка: ' + result.error + '</div>';
                 // Сбрасываем слайдер при ошибке
                 setTimeout(() => {
-                  const slider = document.getElementById('unlock-slider');
-                  slider.classList.remove('completed');
+                  completionAnimation.style.opacity = '0';
                   resetSlider();
                 }, 2000);
               }
@@ -800,16 +835,31 @@ app.get('/track', async (req, res) => {
               message.innerHTML = '<div style="color: #f44336; text-align: center; margin-top: 16px; padding: 12px; background: #ffebee; border-radius: 8px; font-size: 0.875rem;">❌ Ошибка: ' + error.message + '</div>';
               // Сбрасываем слайдер при ошибке
               setTimeout(() => {
-                const slider = document.getElementById('unlock-slider');
-                slider.classList.remove('completed');
+                completionAnimation.style.opacity = '0';
                 resetSlider();
               }, 2000);
             }
           }
           
-          // Инициализация слайдера при загрузке страницы
+          // Инициализация при загрузке
           document.addEventListener('DOMContentLoaded', initSlider);
-          window.addEventListener('resize', initSlider);
+          
+          // Переинициализация при изменении размера окна
+          let resizeTimeout;
+          window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(initSlider, 250);
+          });
+          
+          // Предотвращение zoom на странице при двойном тапе
+          let lastTouchEnd = 0;
+          document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd < 300) {
+              e.preventDefault();
+            }
+            lastTouchEnd = now;
+          }, { passive: false });
         </script>
       </body>
       </html>
@@ -914,12 +964,12 @@ function formatRussianDate(dateStr) {
     const month = months[date.getMonth()];
     const year = date.getFullYear();
 
-    return `${weekday}, ${day} ${month} ${year}`;
+    return weekday + ', ' + day + ' ' + month + ' ' + year;
   } catch {
     return dateStr;
   }
 }
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
+  console.log('Сервер запущен на порту ' + PORT);
 });
