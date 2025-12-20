@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
@@ -13,6 +14,26 @@ let fetch;
 })();
 
 const BITRIX_WEBHOOK_URL = process.env.BITRIX_WEBHOOK_URL;
+
+// Функция для проверки токена
+function validateWebhookToken(token) {
+  const expectedToken = process.env.WEBHOOK_TOKEN;
+  return token === expectedToken;
+}
+
+// Защищенный middleware для webhook
+function authenticateWebhook(req, res, next) {
+  const providedToken = req.headers['x-webhook-token'] || req.query.token;
+  
+  if (!providedToken || !validateWebhookToken(providedToken)) {
+    console.log('Unauthorized webhook access attempt from IP:', req.ip);
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  next();
+}
+
+app.use(express.json());
 
 app.get('/', (req, res) => {
   res.send(`
@@ -792,21 +813,22 @@ app.get('/track', async (req, res) => {
             completionAnimation.style.opacity = '1';
             
             // Отправляем запрос на подтверждение
-            confirmLead(${lead.ID});
+            confirmLead(${lead.ID}, '${key}');
           }
           
           // Отправка запроса на подтверждение лида
-          async function confirmLead(leadId) {
+          async function confirmLead(leadId, key) {
             try {
               // Отправляем запрос на обновление статуса лида
               const response = await fetch('/confirm-lead', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
+                  'X-Webhook-Token': '${process.env.WEBHOOK_TOKEN || ''}'
                 },
                 body: JSON.stringify({
                   leadId: leadId,
-                  key: '${key}'
+                  key: key
                 })
               });
               
@@ -866,7 +888,7 @@ app.get('/track', async (req, res) => {
 });
 
 // Обработчик подтверждения лида
-app.post('/confirm-lead', express.json(), async (req, res) => {
+app.post('/confirm-lead', authenticateWebhook, async (req, res) => {
   const { leadId, key } = req.body;
 
   if (!leadId || !key) {
@@ -923,6 +945,26 @@ app.post('/confirm-lead', express.json(), async (req, res) => {
   }
 });
 
+// Защищенный endpoint для автоматического обновления
+app.post('/webhook/update', authenticateWebhook, async (req, res) => {
+  try {
+    const exec = require('child_process').exec;
+    
+    exec('bash /var/www/your-app/update.sh', (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error updating app: ${error}`);
+        return res.status(500).json({ error: 'Update failed', details: error.message });
+      }
+      
+      console.log(`App updated successfully: ${stdout}`);
+      res.json({ success: true, message: 'Application updated successfully' });
+    });
+  } catch (error) {
+    console.error('Error in update webhook:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Вспомогательные функции
 function formatDate(dateStr) {
   if (!dateStr) return '—';
@@ -965,5 +1007,5 @@ function formatRussianDate(dateStr) {
 }
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log('Сервер запущен на порту ' + PORT);
+  console.log(`Сервер запущен на порту ${PORT}`);
 });
