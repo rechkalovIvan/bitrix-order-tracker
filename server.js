@@ -221,15 +221,17 @@ app.get('/track', async (req, res) => {
             `;
     }
 
-    // 9. Определяем заголовок в зависимости от статуса
-    let pageTitle = 'Проверьте и подтвердите';
-    if (lead.STATUS_ID === '1') {
-      pageTitle = 'Отправлена форма';
-    } else if (lead.STATUS_ID === '2') {
-      pageTitle = 'Предварительный расчет';
-    } else if (lead.STATUS_ID === '7') {
-      pageTitle = 'Согласовано';
-    }
+   // 9. Определяем заголовок в зависимости от статуса
+let pageTitle = null;
+if (lead.STATUS_ID === '1') {
+  pageTitle = 'Отправлена форма';
+} else if (lead.STATUS_ID === '2') {
+  pageTitle = 'Предварительный расчет';
+} else if (lead.STATUS_ID === '7') {
+  pageTitle = 'Согласовано';
+} else if (lead.STATUS_ID === '8') {
+  pageTitle = 'Проверьте и подтвердите';
+}
 
     // 10. Генерируем HTML слайдера (если статус = 8)
     let sliderHtml = '';
