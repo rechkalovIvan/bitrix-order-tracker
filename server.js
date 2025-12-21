@@ -222,7 +222,7 @@ app.get('/track', async (req, res) => {
     }
 
    // 9. Определяем заголовок в зависимости от статуса
-let pageTitle = null;
+let pageTitle = '';
 if (lead.STATUS_ID === '1') {
   pageTitle = 'Отправлена форма';
 } else if (lead.STATUS_ID === '2') {
