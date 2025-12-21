@@ -261,84 +261,6 @@ app.get('/track', async (req, res) => {
             `;
     }
 
-    // 12. Подготовим HTML для контента, который будет сворачиваться (если статус 8)
-    // --- НАЧАЛО ИЗМЕНЕНИЯ ---
-    let collapsibleContent = '';
-    if (lead.STATUS_ID === '8') {
-        // Оборачиваем карточки в div с id для управления
-        collapsibleContent = `
-            <div id="collapsible-content">
-                <div class="card">
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <div class="info-label">Дата начала</div>
-                            <div class="info-value">${formatRussianDate(lead.UF_CRM_BEGINDATE)}</div>
-                        </div>
-
-                        <div class="info-item">
-                            <div class="info-label">Время начала</div>
-                            <div class="info-value">${formatTimeList(lead.UF_CRM_1638818267, 'UF_CRM_1638818267')}</div>
-                        </div>
-
-                        <div class="info-item">
-                            <div class="info-label">Дата завершения</div>
-                            <div class="info-value">${formatRussianDate(lead.UF_CRM_5FB96D2488307)}</div>
-                        </div>
-
-                        <div class="info-item">
-                            <div class="info-label">Время завершения</div>
-                            <div class="info-value">${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    ${productsHtml}
-                </div>
-
-                ${additionalBlocks}
-            </div>
-            <!-- Кнопка для раскрытия/скрытия -->
-            <button id="toggle-button" class="toggle-button">Показать детали</button>
-        `;
-    } else {
-        // Для других статусов отображаем как раньше
-         collapsibleContent = `
-             <div class="card">
-                <div class="info-grid">
-
-                  <div class="info-item">
-                    <div class="info-label">Дата начала</div>
-                    <div class="info-value">${formatRussianDate(lead.UF_CRM_BEGINDATE)}</div>
-                  </div>
-
-                  <div class="info-item">
-                    <div class="info-label">Время начала</div>
-                    <div class="info-value">${formatTimeList(lead.UF_CRM_1638818267, 'UF_CRM_1638818267')}</div>
-                  </div>
-
-                  <div class="info-item">
-                    <div class="info-label">Дата завершения</div>
-                    <div class="info-value">${formatRussianDate(lead.UF_CRM_5FB96D2488307)}</div>
-                  </div>
-
-                  <div class="info-item">
-                    <div class="info-label">Время завершения</div>
-                    <div class="info-value">${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="card">
-                ${productsHtml}
-              </div>
-
-              ${additionalBlocks}
-         `;
-    }
-    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
-
-
     // 12. Отправляем HTML клиенту
     res.send(`
       <html>
@@ -631,35 +553,6 @@ app.get('/track', async (req, res) => {
             padding: 20px;
           }
 
-          /* --- НАЧАЛО ИЗМЕНЕНИЯ --- */
-          .toggle-button {
-            width: 100%;
-            padding: 16px;
-            background-color: #4299e1;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.2s, transform 0.1s;
-          }
-
-          .toggle-button:hover {
-            background-color: #3182ce;
-          }
-
-          .toggle-button:active {
-            transform: scale(0.98);
-          }
-
-          /* Стиль для скрытого контента */
-          #collapsible-content.hidden {
-              display: none;
-          }
-          /* --- КОНЕЦ ИЗМЕНЕНИЯ --- */
-
           @media (max-width: 480px) {
             body {
               padding: 16px;
@@ -689,34 +582,42 @@ app.get('/track', async (req, res) => {
             <h1>${pageTitle}</h1>
           </div>
 
-          <!-- Вставляем сюда изменяемый контент -->
-          ${collapsibleContent}
+          <div class="card">
+            <div class="info-grid">
+
+              <div class="info-item">
+                <div class="info-label">Дата начала</div>
+                <div class="info-value">${formatRussianDate(lead.UF_CRM_BEGINDATE)}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Время начала</div>
+                <div class="info-value">${formatTimeList(lead.UF_CRM_1638818267, 'UF_CRM_1638818267')}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Дата завершения</div>
+                <div class="info-value">${formatRussianDate(lead.UF_CRM_5FB96D2488307)}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Время завершения</div>
+                <div class="info-value">${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            ${productsHtml}
+          </div>
+
+          ${additionalBlocks}
 
           ${sliderHtml}
         </div>
 
         <script>
-          // --- НАЧАЛО ИЗМЕНЕНИЯ ---
-          // Инициализация сворачивания/разворачивания (только если элементы существуют)
-          const toggleButton = document.getElementById('toggle-button');
-          const collapsibleContentDiv = document.getElementById('collapsible-content');
-
-          if (toggleButton && collapsibleContentDiv) {
-              let isHidden = true; // Стартово скрыто
-
-              // Применяем начальное состояние
-              collapsibleContentDiv.classList.toggle('hidden', isHidden);
-              toggleButton.textContent = isHidden ? 'Показать детали' : 'Скрыть детали';
-
-              toggleButton.addEventListener('click', () => {
-                  isHidden = !isHidden;
-                  collapsibleContentDiv.classList.toggle('hidden', isHidden);
-                  toggleButton.textContent = isHidden ? 'Показать детали' : 'Скрыть детали';
-              });
-          }
-          // --- КОНЕЦ ИЗМЕНЕНИЯ ---
-
-          // Элементы DOM для слайдера
+          // Элементы DOM
           let track, thumb, message, sliderText, completionAnimation;
 
           // Состояние слайдера
