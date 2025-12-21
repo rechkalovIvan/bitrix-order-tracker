@@ -36,7 +36,7 @@ function authenticateWebhook(req, res, next) {
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.redirect('https://dom-chistoty.ru');
+  res.redirect('https://dom-chistoty.ru  ');
 });
 
 app.get('/track', async (req, res) => {
@@ -261,6 +261,84 @@ app.get('/track', async (req, res) => {
             `;
     }
 
+    // 12. Подготовим HTML для контента, который будет сворачиваться (если статус 8)
+    // --- НАЧАЛО ИЗМЕНЕНИЯ ---
+    let collapsibleContent = '';
+    if (lead.STATUS_ID === '8') {
+        // Оборачиваем карточки в div с id для управления
+        collapsibleContent = `
+            <div id="collapsible-content">
+                <div class="card">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Дата начала</div>
+                            <div class="info-value">${formatRussianDate(lead.UF_CRM_BEGINDATE)}</div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="info-label">Время начала</div>
+                            <div class="info-value">${formatTimeList(lead.UF_CRM_1638818267, 'UF_CRM_1638818267')}</div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="info-label">Дата завершения</div>
+                            <div class="info-value">${formatRussianDate(lead.UF_CRM_5FB96D2488307)}</div>
+                        </div>
+
+                        <div class="info-item">
+                            <div class="info-label">Время завершения</div>
+                            <div class="info-value">${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    ${productsHtml}
+                </div>
+
+                ${additionalBlocks}
+            </div>
+            <!-- Кнопка для раскрытия/скрытия -->
+            <button id="toggle-button" class="toggle-button">Показать детали</button>
+        `;
+    } else {
+        // Для других статусов отображаем как раньше
+         collapsibleContent = `
+             <div class="card">
+                <div class="info-grid">
+
+                  <div class="info-item">
+                    <div class="info-label">Дата начала</div>
+                    <div class="info-value">${formatRussianDate(lead.UF_CRM_BEGINDATE)}</div>
+                  </div>
+
+                  <div class="info-item">
+                    <div class="info-label">Время начала</div>
+                    <div class="info-value">${formatTimeList(lead.UF_CRM_1638818267, 'UF_CRM_1638818267')}</div>
+                  </div>
+
+                  <div class="info-item">
+                    <div class="info-label">Дата завершения</div>
+                    <div class="info-value">${formatRussianDate(lead.UF_CRM_5FB96D2488307)}</div>
+                  </div>
+
+                  <div class="info-item">
+                    <div class="info-label">Время завершения</div>
+                    <div class="info-value">${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                ${productsHtml}
+              </div>
+
+              ${additionalBlocks}
+         `;
+    }
+    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
+
     // 12. Отправляем HTML клиенту
     res.send(`
       <html>
@@ -274,7 +352,7 @@ app.get('/track', async (req, res) => {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
           }
-          
+
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -283,25 +361,25 @@ app.get('/track', async (req, res) => {
             padding: 20px;
             min-height: 100vh;
           }
-          
+
           .container {
             max-width: 500px;
             margin: 0 auto;
           }
-          
+
           .header {
             text-align: center;
             margin-bottom: 30px;
             color: white;
           }
-          
+
           .header h1 {
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 8px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
-          
+
           .card {
             background: white;
             border-radius: 16px;
@@ -310,79 +388,79 @@ app.get('/track', async (req, res) => {
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             backdrop-filter: blur(10px);
           }
-          
+
           .info-grid {
             display: grid;
             gap: 16px;
           }
-          
+
           .info-item {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
           }
-          
+
           .info-label {
             font-weight: 500;
             color: #666;
             font-size: 0.9rem;
           }
-          
+
           .info-value {
             text-align: right;
             font-weight: 500;
             color: #333;
             font-size: 0.9rem;
           }
-          
+
           h3 {
             font-size: 1.125rem;
             font-weight: 600;
             margin-bottom: 16px;
             color: #333;
           }
-          
+
           .products-grid {
             display: flex;
             flex-direction: column;
             gap: 16px;
           }
-          
+
           .product-card {
             padding: 16px;
             background: #f8f9fa;
             border-radius: 12px;
             border: 1px solid #e9ecef;
           }
-          
+
           .product-name {
             font-weight: 500;
             margin-bottom: 8px;
             color: #333;
           }
-          
+
           .product-details {
             display: flex;
             justify-content: space-between;
             margin-bottom: 8px;
             font-size: 0.875rem;
           }
-          
+
           .product-price {
             color: #666;
           }
-          
+
           .product-quantity {
             color: #888;
           }
-          
+
           .product-total {
             font-weight: 600;
             color: #333;
             text-align: right;
             font-size: 1rem;
           }
-          
+
           .products-total {
             display: flex;
             justify-content: space-between;
@@ -391,17 +469,17 @@ app.get('/track', async (req, res) => {
             border-top: 2px solid #e9ecef;
             font-weight: 600;
           }
-          
+
           .total-label {
             font-size: 1.125rem;
             color: #333;
           }
-          
+
           .total-amount {
             font-size: 1.25rem;
             color: #4caf50;
           }
-          
+
           .info-card {
             display: flex;
             gap: 12px;
@@ -410,48 +488,48 @@ app.get('/track', async (req, res) => {
             margin-bottom: 16px;
             align-items: flex-start;
           }
-          
+
           .info-card.warning {
             background: #fff3cd;
             border: 1px solid #ffeaa7;
           }
-          
+
           .info-card.alert {
             background: #ffebee;
             border: 1px solid #ffcdd2;
           }
-          
+
           .info-icon {
             font-size: 1.25rem;
             flex-shrink: 0;
           }
-          
+
           .info-content {
             flex: 1;
           }
-          
+
           .info-title {
             font-weight: 600;
             margin-bottom: 4px;
             font-size: 0.9rem;
           }
-          
+
           .info-text {
             font-size: 0.875rem;
             line-height: 1.4;
             color: #333;
           }
-          
+
           .slider-section {
             margin: 30px 0;
           }
-          
+
           .slider-wrapper {
             position: relative;
             margin: 30px 0;
             padding: 0 10px;
           }
-          
+
           #slider-track {
             position: relative;
             height: 60px;
@@ -460,7 +538,7 @@ app.get('/track', async (req, res) => {
             overflow: hidden;
             transition: background-color 0.3s ease;
           }
-          
+
           #slider-thumb {
             position: absolute;
             top: 5px;
@@ -477,19 +555,19 @@ app.get('/track', async (req, res) => {
             cursor: grab;
             transition: transform 0.2s, box-shadow 0.2s;
           }
-          
+
           #slider-thumb:active {
             transform: scale(1.1);
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
             cursor: grabbing;
           }
-          
+
           .slider-icon {
             color: #4299e1;
             font-size: 20px;
             transition: color 0.3s;
           }
-          
+
           .slider-text {
             position: absolute;
             top: 0;
@@ -507,7 +585,7 @@ app.get('/track', async (req, res) => {
             transition: opacity 0.3s, color 0.3s;
             z-index: 5;
           }
-          
+
           .hint-text {
             margin-top: 15px;
             color: #ffffff;
@@ -516,7 +594,7 @@ app.get('/track', async (req, res) => {
             text-align: center;
             text-shadow: 0 1px 2px rgba(0,0,0,0.3);
           }
-          
+
           .completion-animation {
             position: absolute;
             top: 0;
@@ -528,7 +606,7 @@ app.get('/track', async (req, res) => {
             opacity: 0;
             pointer-events: none;
           }
-          
+
           .success-message {
             background: #f0fff4;
             color: #38a169;
@@ -541,35 +619,64 @@ app.get('/track', async (req, res) => {
             gap: 10px;
             animation: fadeIn 0.5s ease;
           }
-          
+
           @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
           }
-          
+
           .error-text {
             color: #f44336;
             text-align: center;
             padding: 20px;
           }
-          
+
+          /* --- НАЧАЛО ИЗМЕНЕНИЯ --- */
+          .toggle-button {
+            width: 100%;
+            padding: 16px;
+            background-color: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s, transform 0.1s;
+          }
+
+          .toggle-button:hover {
+            background-color: #3182ce;
+          }
+
+          .toggle-button:active {
+            transform: scale(0.98);
+          }
+
+          /* Стиль для скрытого контента */
+          #collapsible-content.hidden {
+              display: none;
+          }
+          /* --- КОНЕЦ ИЗМЕНЕНИЯ --- */
+
           @media (max-width: 480px) {
             body {
               padding: 16px;
             }
-            
+
             .card {
               padding: 20px;
             }
-            
+
             .header h1 {
               font-size: 1.75rem;
             }
-            
+
             .product-card {
               padding: 12px;
             }
-            
+
             .info-card {
               padding: 12px;
             }
@@ -581,45 +688,37 @@ app.get('/track', async (req, res) => {
           <div class="header">
             <h1>${pageTitle}</h1>
           </div>
-          
-          <div class="card">
-            <div class="info-grid">
-                            
-              <div class="info-item">
-                <div class="info-label">Дата начала</div>
-                <div class="info-value">${formatRussianDate(lead.UF_CRM_BEGINDATE)}</div>
-              </div>
-              
-              <div class="info-item">
-                <div class="info-label">Время начала</div>
-                <div class="info-value">${formatTimeList(lead.UF_CRM_1638818267, 'UF_CRM_1638818267')}</div>
-              </div>
-              
-              <div class="info-item">
-                <div class="info-label">Дата завершения</div>
-                <div class="info-value">${formatRussianDate(lead.UF_CRM_5FB96D2488307)}</div>
-              </div>
-              
-              <div class="info-item">
-                <div class="info-label">Время завершения</div>
-                <div class="info-value">${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}</div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="card">
-            ${productsHtml}
-          </div>
-          
-          ${additionalBlocks}
-          
+
+          <!-- Вставляем сюда изменяемый контент -->
+          ${collapsibleContent}
+
           ${sliderHtml}
         </div>
 
         <script>
-          // Элементы DOM
+          // --- НАЧАЛО ИЗМЕНЕНИЯ ---
+          // Инициализация сворачивания/разворачивания (только если элементы существуют)
+          const toggleButton = document.getElementById('toggle-button');
+          const collapsibleContentDiv = document.getElementById('collapsible-content');
+
+          if (toggleButton && collapsibleContentDiv) {
+              let isHidden = true; // Стартово скрыто
+
+              // Применяем начальное состояние
+              collapsibleContentDiv.classList.toggle('hidden', isHidden);
+              toggleButton.textContent = isHidden ? 'Показать детали' : 'Скрыть детали';
+
+              toggleButton.addEventListener('click', () => {
+                  isHidden = !isHidden;
+                  collapsibleContentDiv.classList.toggle('hidden', isHidden);
+                  toggleButton.textContent = isHidden ? 'Показать детали' : 'Скрыть детали';
+              });
+          }
+          // --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
+          // Элементы DOM для слайдера
           let track, thumb, message, sliderText, completionAnimation;
-          
+
           // Состояние слайдера
           let isDragging = false;
           let startX = 0;
@@ -627,7 +726,7 @@ app.get('/track', async (req, res) => {
           let trackWidth = 0;
           let thumbWidth = 0;
           let maxLeft = 0;
-          
+
           // Инициализация слайдера
           function initSlider() {
             track = document.getElementById('slider-track');
@@ -635,121 +734,121 @@ app.get('/track', async (req, res) => {
             message = document.getElementById('message');
             sliderText = document.querySelector('.slider-text');
             completionAnimation = document.querySelector('.completion-animation');
-            
+
             if (!track || !thumb) return;
-            
+
             // Получаем актуальные размеры
             trackWidth = track.offsetWidth;
             thumbWidth = thumb.offsetWidth;
             maxLeft = trackWidth - thumbWidth - 10;
-            
+
             // Сбрасываем состояние
             resetSlider();
-            
+
             // Добавляем обработчики событий
             addEventListeners();
           }
-          
+
           // Добавление обработчиков событий
           function addEventListeners() {
             // События для мыши
             thumb.addEventListener('mousedown', onDragStart);
             document.addEventListener('mousemove', onDragMove);
             document.addEventListener('mouseup', onDragEnd);
-            
+
             // События для касаний
             thumb.addEventListener('touchstart', onTouchStart, { passive: false });
             document.addEventListener('touchmove', onTouchMove, { passive: false });
             document.addEventListener('touchend', onDragEnd);
             document.addEventListener('touchcancel', onDragEnd);
-            
+
             // Предотвращение контекстного меню на thumb
             thumb.addEventListener('contextmenu', (e) => e.preventDefault());
           }
-          
+
           // Обработчик начала перетаскивания
           function onDragStart(e) {
             e.preventDefault();
             isDragging = true;
             startX = e.clientX;
             startLeft = parseInt(getComputedStyle(thumb).left) || 0;
-            
+
             // Добавляем активный класс
             thumb.classList.add('active');
-            
+
             // Блокируем скролл страницы
             document.body.style.overflow = 'hidden';
           }
-          
+
           // Обработчик касания
           function onTouchStart(e) {
             if (e.cancelable) e.preventDefault();
             isDragging = true;
             startX = e.touches[0].clientX;
             startLeft = parseInt(getComputedStyle(thumb).left) || 0;
-            
+
             // Добавляем активный класс
             thumb.classList.add('active');
-            
+
             // Блокируем скролл страницы
             document.body.style.overflow = 'hidden';
           }
-          
+
           // Обработчик движения при перетаскивании
           function onDragMove(e) {
             if (!isDragging) return;
-            
+
             const clientX = e.clientX || (e.touches && e.touches[0].clientX);
             if (!clientX) return;
-            
+
             e.preventDefault();
             updateThumbPosition(clientX);
           }
-          
+
           // Обработчик движения при касании
           function onTouchMove(e) {
             if (!isDragging) return;
-            
+
             if (e.cancelable) e.preventDefault();
             updateThumbPosition(e.touches[0].clientX);
           }
-          
+
           // Обработчик окончания перетаскивания
           function onDragEnd() {
             if (!isDragging) return;
-            
+
             isDragging = false;
             thumb.classList.remove('active');
-            
+
             // Восстанавливаем скролл страницы
             document.body.style.overflow = '';
-            
+
             const currentLeft = parseInt(getComputedStyle(thumb).left) || 0;
-            
+
             if (currentLeft >= maxLeft - 15) {
               completeSlider();
             } else {
               resetSlider();
             }
           }
-          
+
           // Обновление позиции thumb
           function updateThumbPosition(clientX) {
             const deltaX = clientX - startX;
             let newLeft = startLeft + deltaX;
-            
+
             // Ограничиваем движение
             newLeft = Math.max(5, Math.min(newLeft, maxLeft));
-            
+
             // Обновляем позицию
             thumb.style.left = newLeft + 'px';
-            
+
             // Вычисляем процент заполнения
             const fillPercent = (newLeft / maxLeft) * 100;
-            
+
             // Меняем цвет фона в зависимости от прогресса
             updateTrackColor(fillPercent);
-            
+
             // Скрываем текст при движении
             if (fillPercent > 10) {
               sliderText.style.opacity = '0';
@@ -757,16 +856,16 @@ app.get('/track', async (req, res) => {
               sliderText.style.opacity = '1';
             }
           }
-          
+
           // Изменение цвета фона в зависимости от прогресса
           function updateTrackColor(percent) {
             // Интерполяция цвета от серого к зеленому
             const r = Math.floor(237 + (56 - 237) * percent / 100);
             const g = Math.floor(242 + (161 - 242) * percent / 100);
             const b = Math.floor(247 + (105 - 247) * percent / 100);
-            
+
             track.style.backgroundColor = 'rgb(' + r + ', ' + g + ', ' + b + ')';
-            
+
             // Меняем цвет текста на белый при достаточном прогрессе
             if (percent > 50) {
               sliderText.style.color = 'white';
@@ -774,42 +873,42 @@ app.get('/track', async (req, res) => {
               sliderText.style.color = '#4a5568';
             }
           }
-          
+
           // Сброс слайдера
           function resetSlider() {
             thumb.style.transition = 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
             track.style.transition = 'background-color 0.4s ease';
-            
+
             thumb.style.left = '5px';
             track.style.backgroundColor = '#edf2f7';
             sliderText.style.opacity = '1';
             sliderText.style.color = '#4a5568';
-            
+
             // Убираем transition после завершения
             setTimeout(() => {
               thumb.style.transition = '';
               track.style.transition = '';
             }, 400);
           }
-          
+
           // Завершение слайдера
           function completeSlider() {
             // Анимация завершения
             thumb.style.transition = 'left 0.3s ease, transform 0.3s ease';
             track.style.transition = 'background-color 0.3s ease';
-            
+
             thumb.style.left = maxLeft + 'px';
             track.style.backgroundColor = '#38a169';
             sliderText.style.color = 'white';
-            
+
             // Анимация завершения
             completionAnimation.style.transition = 'opacity 0.3s ease';
             completionAnimation.style.opacity = '1';
-            
+
             // Отправляем запрос на подтверждение
             confirmLead(${lead.ID}, '${key}');
           }
-          
+
           // Отправка запроса на подтверждение лида
           async function confirmLead(leadId, key) {
             try {
@@ -825,9 +924,9 @@ app.get('/track', async (req, res) => {
                   key: key
                 })
               });
-              
+
               const result = await response.json();
-              
+
               if (result.success) {
                 // Перезагружаем страницу через 0.5 секунды
                 setTimeout(() => {
@@ -850,17 +949,17 @@ app.get('/track', async (req, res) => {
               }, 2000);
             }
           }
-          
+
           // Инициализация при загрузке
           document.addEventListener('DOMContentLoaded', initSlider);
-          
+
           // Переинициализация при изменении размера окна
           let resizeTimeout;
           window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(initSlider, 250);
           });
-          
+
           // Предотвращение zoom на странице при двойном тапе
           let lastTouchEnd = 0;
           document.addEventListener('touchend', (e) => {
@@ -943,13 +1042,13 @@ app.post('/confirm-lead', authenticateWebhook, async (req, res) => {
 app.post('/webhook/update', authenticateWebhook, async (req, res) => {
   try {
     const exec = require('child_process').exec;
-    
+
     exec('bash /var/www/your-app/update.sh', (error, stdout, stderr) => {
       if (error) {
         console.error(`Error updating app: ${error}`);
         return res.status(500).json({ error: 'Update failed', details: error.message });
       }
-      
+
       console.log(`App updated successfully: ${stdout}`);
       res.json({ success: true, message: 'Application updated successfully' });
     });
