@@ -36,10 +36,7 @@ function authenticateWebhook(req, res, next) {
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.send(`
-    <h1>Отслеживание лида</h1>
-    <p>Пример ссылки: <a href="/track?key=a7x9k2m5">/track?key=a7x9k2m5</a></p>
-  `);
+  res.redirect('https://dom-chistoty.ru');
 });
 
 app.get('/track', async (req, res) => {
