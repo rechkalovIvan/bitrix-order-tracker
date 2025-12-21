@@ -14,57 +14,7 @@ let fetch;
 })();
 
 const BITRIX_WEBHOOK_URL = process.env.BITRIX_WEBHOOK_URL;
-// ... existing code ...
-res.send(`
-  <html>
-  <head>
-    <!-- ... styles ... -->
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <h1>${pageTitle}</h1>
-      </div>
 
-      <div class="card">
-        <div class="info-grid">
-
-          <div class="info-item">
-            <div class="info-label">Дата начала</div>
-            <div class="info-value">${formatRussianDate(lead.UF_CRM_BEGINDATE)}</div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">Время начала</div>
-            <div class="info-value">${formatTimeList(lead.UF_CRM_1638818267, 'UF_CRM_1638818267')}</div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">Дата завершения</div>
-            <div class="info-value">${formatRussianDate(lead.UF_CRM_5FB96D2488307)}</div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">Время завершения</div>
-            <div class="info-value">${formatTimeList(lead.UF_CRM_1638818801, 'UF_CRM_1638818801')}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        ${productsHtml}
-      </div>
-
-      ${additionalBlocks}
-
-      ${sliderHtml}
-    </div>
-
-    <!-- ... script ... -->
-  </body>
-  </html>
-`);
-// ... existing code ...
 // Функция для проверки токена
 function validateWebhookToken(token) {
   const expectedToken = process.env.WEBHOOK_TOKEN;
@@ -635,6 +585,12 @@ app.get('/track', async (req, res) => {
           
           <div class="card">
             <div class="info-grid">
+
+             <div class="info-item">
+                <div class="info-label">Статус</div>
+                <div class="info-value">${lead.STATUS_ID}</div>
+              </div>
+                            
               <div class="info-item">
                 <div class="info-label">Дата начала</div>
                 <div class="info-value">${formatRussianDate(lead.UF_CRM_BEGINDATE)}</div>
