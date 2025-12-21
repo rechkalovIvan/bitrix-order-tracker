@@ -221,9 +221,9 @@ app.get('/track', async (req, res) => {
             `;
     }
 
-   // 9. Определяем заголовок в зависимости от статуса
-let pageTitle = '';
-if (lead.STATUS_ID === '1') {
+    // 9. Определяем заголовок в зависимости от статуса
+    let pageTitle = '';
+   if (lead.STATUS_ID === '1') {
   pageTitle = 'Отправлена форма';
 } else if (lead.STATUS_ID === '2') {
   pageTitle = 'Предварительный расчет';
@@ -268,7 +268,7 @@ if (lead.STATUS_ID === '1') {
     res.send(`
       <html>
       <head>
-        <title>Ваш лид</title>
+        <title>Стоимость аренды</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <style>
           * {
