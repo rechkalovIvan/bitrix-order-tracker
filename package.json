@@ -1,13 +1,22 @@
 {
   "name": "bitrix-order-tracker",
   "version": "1.0.0",
-  "main": "server.js",
+  "description": "Bitrix CRM lead tracking application",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
-    "start": "node server.js"
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=frontend",
+    "start": "npm run start --workspace=backend",
+    "install:all": "npm install --workspaces"
   },
-  "dependencies": {
-    "express": "^4.18.0",
-    "node-fetch": "^3.3.2"
+  "devDependencies": {
+    "concurrently": "^8.2.0"
   },
   "engines": {
     "node": "20.x"
