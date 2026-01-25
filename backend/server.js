@@ -19,6 +19,24 @@ app.use(express.json());
 app.use('/api/leads', leadRoutes);
 app.use('/api/webhooks', webhookRoutes);
 
+// Health check endpoints (must be before static middleware)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'backend' });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'api' });
+});
+
+// API catch-all handler (for better 404 responses on API routes)
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ 
+    error: 'API endpoint not found',
+    path: req.originalUrl,
+    method: req.method
+  });
+});
+
 // Legacy route for backward compatibility
 app.get('/', (req, res) => {
   res.send(`
@@ -52,19 +70,19 @@ app.get('/track', async (req, res) => {
   }
 });
 
-// Serve static files from frontend in production
+// Serve static files from frontend in production (only for non-API routes)
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../frontend/dist')));
   
-  app.get('*', (req, res) => {
+  // Frontend catch-all (only for non-API routes)
+  app.get('*', (req, res, next) => {
+    // Don't intercept API routes
+    if (req.originalUrl.startsWith('/api/') || req.originalUrl === '/health') {
+      return next();
+    }
     res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
   });
 }
-
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // Error handling middleware (must be last)
 app.use(notFound);
