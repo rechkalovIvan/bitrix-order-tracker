@@ -19,20 +19,6 @@ class BitrixService {
   }
 
   async getLeadByKey(key) {
-    // Demo mode for development
-    if (process.env.NODE_ENV === 'development' && key === 'demo123') {
-      return {
-        ID: '123',
-        TITLE: 'Демо заказ на клининг',
-        STATUS_ID: '8',
-        UF_CRM_BEGINDATE: '2025-01-25',
-        UF_CRM_1638818267: ['1'], // Demo time ID
-        UF_CRM_5FB96D2488307: '2025-01-25',
-        UF_CRM_1638818801: ['2'], // Demo time ID
-        UF_CRM_1614544756: ['1']  // Demo equipment ID (washing vacuum)
-      };
-    }
-
     if (!fetch) {
       throw new Error('Сервер не загрузил необходимые модули');
     }
@@ -43,11 +29,11 @@ class BitrixService {
         filter: { UF_CRM_1754490207019: key },
         select: [
           'ID', 'TITLE', 'OPPORTUNITY', 'STATUS_ID', 'DATE_CREATE',
-          'UF_CRM_BEGINDATE',           // Дата начала
-          'UF_CRM_1638818267',          // Время начала (ID из списка)
-          'UF_CRM_5FB96D2488307',       // Дата завершения
-          'UF_CRM_1638818801',          // Время завершения (ID из списка)
-          'UF_CRM_1614544756'           // Тип оборудования (ID из списка, может быть множественным)
+          'UF_CRM_BEGINDATE',
+          'UF_CRM_1638818267',
+          'UF_CRM_5FB96D2488307',
+          'UF_CRM_1638818801',
+          'UF_CRM_1614544756'
         ]
       }),
       headers: { 'Content-Type': 'application/json' }
@@ -62,30 +48,6 @@ class BitrixService {
   }
 
   async getUserFields() {
-    // Demo mode for development
-    if (process.env.NODE_ENV === 'development') {
-      return {
-        'UF_CRM_1638818267': {
-          '1': '10:00',
-          '2': '12:00',
-          '3': '14:00',
-          '4': '16:00'
-        },
-        'UF_CRM_1638818801': {
-          '1': '11:00',
-          '2': '13:00',
-          '3': '15:00',
-          '4': '17:00'
-        },
-        'UF_CRM_1614544756': {
-          '1': 'Моющий пылесос',
-          '2': 'Парогенератор',
-          '3': 'Роторная машина',
-          '4': 'Экстрактор'
-        }
-      };
-    }
-
     if (!fetch) {
       throw new Error('Сервер не загрузил необходимые модули');
     }
@@ -98,10 +60,10 @@ class BitrixService {
     const data = await response.json();
     const userFields = data.result || [];
 
-    // Обрабатываем нужные поля
+    // Build field mappings for time and equipment fields
     const fieldMappings = {};
     const timeFields = ['UF_CRM_1638818267', 'UF_CRM_1638818801', 'UF_CRM_1614544756'];
-    
+
     userFields.forEach(field => {
       if (timeFields.includes(field.FIELD_NAME) && field.LIST) {
         const mapping = {};
@@ -116,27 +78,6 @@ class BitrixService {
   }
 
   async getLeadProducts(leadId) {
-    // Demo mode for development
-    if (process.env.NODE_ENV === 'development' && leadId === '123') {
-      return [
-        {
-          PRODUCT_NAME: 'Клининг однокомнатной квартиры',
-          PRICE: '5000.00',
-          QUANTITY: '1'
-        },
-        {
-          PRODUCT_NAME: 'Химчистка дивана',
-          PRICE: '3000.00',
-          QUANTITY: '1'
-        },
-        {
-          PRODUCT_NAME: 'Мойка окон',
-          PRICE: '1500.00',
-          QUANTITY: '2'
-        }
-      ];
-    }
-
     if (!fetch) {
       throw new Error('Сервер не загрузил необходимые модули');
     }
@@ -174,7 +115,7 @@ class BitrixService {
   formatTimeList(fieldId, fieldName, fieldMappings) {
     if (!fieldId) return '—';
 
-    // Обработка множественных значений
+    // Multiple values
     if (Array.isArray(fieldId)) {
       return fieldId.map(id =>
         fieldMappings[fieldName]?.[id] || `ID: ${id}`
@@ -187,7 +128,6 @@ class BitrixService {
   formatEquipmentType(fieldId, fieldName, fieldMappings) {
     if (!fieldId) return '—';
 
-    // Обработка множественных значений
     if (Array.isArray(fieldId)) {
       return fieldId.map(id =>
         fieldMappings[fieldName]?.[id] || `ID: ${id}`
