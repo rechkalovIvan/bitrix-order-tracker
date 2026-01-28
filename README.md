@@ -40,7 +40,6 @@ bitrix-order-tracker/
 2. Настройте переменные окружения:
    ```
    BITRIX_WEBHOOK_URL=https://your-bitrix.webhook.url/
-   WEBHOOK_TOKEN=your-secret-token
    PORT=10000
    NODE_ENV=development
    ```

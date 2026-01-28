@@ -5,7 +5,6 @@ const path = require('path');
 
 // Import routes and middleware
 const leadRoutes = require('./src/routes/leads');
-const webhookRoutes = require('./src/routes/webhooks');
 const { errorHandler, notFound } = require('./src/middleware/errorHandler');
 
 const app = express();
@@ -17,7 +16,6 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/leads', leadRoutes);
-app.use('/api/webhooks', webhookRoutes);
 
 // Health check endpoints (must be before static middleware)
 app.get('/health', (req, res) => {

@@ -1,6 +1,5 @@
 const express = require('express');
 const leadController = require('../controllers/leadController');
-const { authenticateWebhook } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -8,6 +7,6 @@ const router = express.Router();
 router.get('/:key', leadController.getLeadByKey);
 
 // POST /api/leads/:id/confirm - подтвердить лид
-router.post('/:id/confirm', authenticateWebhook, leadController.confirmLead);
+router.post('/:id/confirm', leadController.confirmLead);
 
 module.exports = router;
